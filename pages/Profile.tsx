@@ -69,7 +69,7 @@ const Profile: React.FC<ProfileProps> = ({ session }) => {
           </button>
 
           <p className="text-center text-slate-400 text-[10px] mt-8 uppercase font-bold tracking-widest">
-            Versão 2.4.0 • Built with Love
+            Versão 4.0 • Feito por VirtualZ - Dev. Helder
           </p>
         </div>
       </div>
