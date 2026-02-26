@@ -12,6 +12,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Layout from './components/Layout';
 import { Transaction, TransactionType, TransactionCategory } from './types';
+import logo from './img/icone controle financeiro.png';
 
 const INITIAL_TRANSACTIONS: Transaction[] = [
   {
@@ -91,15 +92,16 @@ const App: React.FC = () => {
     setTransactions(prev => prev.map(t => t.id === id ? { ...updatedData, id } : t));
   };
 
-  // Aguardando resolução da sessão inicial
   if (session === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
-        <div className="flex flex-col items-center gap-3">
-          <span className="material-symbols-outlined text-primary text-4xl animate-spin" style={{ animationDuration: '1s' }}>
-            progress_activity
-          </span>
-          <p className="text-slate-400 text-sm font-medium">Carregando...</p>
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-900">
+        <div className="flex flex-col items-center gap-6">
+          <img 
+            src={logo} 
+            alt="Logo Controle Financeiro" 
+            className="w-32 h-32 animate-pulse" 
+          />
+          <p className="text-slate-400 text-sm font-medium animate-pulse">Carregando...</p>
         </div>
       </div>
     );

@@ -71,6 +71,14 @@ const Profile: React.FC<ProfileProps> = ({ session }) => {
           <p className="text-center text-slate-400 text-[10px] mt-8 uppercase font-bold tracking-widest">
             Versão 4.0 • Feito por VirtualZ - Dev. Helder
           </p>
+          <div className="mt-2 text-center">
+            <a 
+              href="politic_privacity.html" 
+              className="text-[10px] text-primary hover:underline font-bold uppercase tracking-widest"
+            >
+              Política de Privacidade
+            </a>
+          </div>
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Transaction, TransactionType, TransactionCategory } from '../types';
 import { filterByMonth, formatBRL } from '../utils';
 import SummaryCard from '../components/SummaryCard';
@@ -17,6 +18,7 @@ const months = [
 ];
 
 const Dashboard: React.FC<DashboardProps> = ({ transactions, addTransaction, deleteTransaction }) => {
+  const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [desc, setDesc] = useState('');
   const [val, setVal] = useState('');
@@ -54,7 +56,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, addTransaction, del
     setVal('');
   };
 
-  const recentTransactions = filteredTransactions.slice(0, 5);
+  const currentMonthTransactions = filteredTransactions;
 
   return (
     <div className="pb-24">
@@ -138,16 +140,24 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, addTransaction, del
             <h2 className="text-lg font-bold">Transações de {months[currentDate.getMonth()]}</h2>
           </div>
         </div>
-        <div className="space-y-3">
-          {recentTransactions.map(t => (
-            <TransactionItem key={t.id} transaction={t} onDelete={deleteTransaction} iconSize="sm" />
-          ))}
-          {recentTransactions.length === 0 && (
-            <div className="text-center py-8">
-              <span className="material-symbols-outlined text-slate-200 text-5xl">inventory_2</span>
-              <p className="text-center text-slate-400 text-sm mt-2">Sem registros este mês.</p>
-            </div>
-          )}
+        <div className="max-h-[400px] overflow-y-auto pr-1 scrollbar-hide">
+          <div className="space-y-3">
+            {currentMonthTransactions.map(t => (
+              <TransactionItem 
+                key={t.id} 
+                transaction={t} 
+                onDelete={deleteTransaction} 
+                onEdit={(id) => navigate(`/transaction/edit/${id}`)}
+                iconSize="sm" 
+              />
+            ))}
+            {currentMonthTransactions.length === 0 && (
+              <div className="text-center py-8">
+                <span className="material-symbols-outlined text-slate-200 text-5xl">inventory_2</span>
+                <p className="text-center text-slate-400 text-sm mt-2">Sem registros este mês.</p>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 

@@ -59,12 +59,12 @@ const Layout: React.FC = () => {
         ))}
       </nav>
 
-      {/* Dark mode toggle */}
+      {/* Light/Dark mode toggle refined */}
       <button
-        className="fixed top-4 right-4 bg-white/20 backdrop-blur-md p-2 rounded-full text-white shadow-sm z-50"
+        className="fixed top-3 right-3 bg-white/10 backdrop-blur-md w-9 h-9 flex items-center justify-center rounded-full text-white/90 shadow-sm z-50 active:scale-90 transition-all border border-white/10"
         onClick={() => document.documentElement.classList.toggle('dark')}
       >
-        <span className="material-symbols-outlined text-sm">dark_mode</span>
+        <span className="material-symbols-outlined text-[18px]">dark_mode</span>
       </button>
     </div>
   );
