@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Transaction, TransactionType } from '../types';
 import TransactionItem from '../components/TransactionItem';
 import FilterChip from '../components/FilterChip';
@@ -10,6 +11,7 @@ interface TransactionsProps {
 }
 
 const Transactions: React.FC<TransactionsProps> = ({ transactions, deleteTransaction }) => {
+  const navigate = useNavigate();
   const [filter, setFilter] = useState<'ALL' | 'ENTRY' | 'EXIT'>('ALL');
   const [search, setSearch] = useState('');
 
@@ -24,8 +26,8 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, deleteTransac
   });
 
   return (
-    <div className="pb-24">
-      <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+    <div className="flex flex-col h-[calc(100vh-80px)] overflow-hidden">
+      <header className="flex-shrink-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
         <div className="px-4 pt-6 pb-2 flex items-center justify-between">
           <h1 className="text-lg font-bold tracking-tight">Extrato Detalhado</h1>
           <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-white/10">
@@ -53,14 +55,19 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, deleteTransac
         </div>
       </header>
 
-      <main className="px-4 py-6 space-y-6">
+      <main className="flex-1 overflow-y-auto px-4 py-6 space-y-6 scrollbar-hide">
         <section>
           <h2 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 px-1">
-            Todas as Lançamentos
+            Minhas Movimentações
           </h2>
-          <div className="space-y-3">
+          <div className="space-y-3 pb-20">
             {filtered.map(t => (
-              <TransactionItem key={t.id} transaction={t} onDelete={deleteTransaction} />
+              <TransactionItem 
+                key={t.id} 
+                transaction={t} 
+                onDelete={deleteTransaction} 
+                onEdit={(id) => navigate(`/transaction/edit/${id}`)}
+              />
             ))}
             {filtered.length === 0 && (
               <p className="text-center text-slate-400 text-sm py-10 italic">Nenhum resultado encontrado.</p>

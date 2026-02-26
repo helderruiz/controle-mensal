@@ -6,11 +6,12 @@ import { CATEGORY_ICONS, CATEGORY_COLORS } from '../constants';
 interface TransactionItemProps {
   transaction: Transaction;
   onDelete: (id: string) => void;
+  onEdit?: (id: string) => void;
   /** Tamanho do ícone de categoria. Padrão: 'md' */
   iconSize?: 'sm' | 'md';
 }
 
-const TransactionItem: React.FC<TransactionItemProps> = ({ transaction: t, onDelete, iconSize = 'md' }) => {
+const TransactionItem: React.FC<TransactionItemProps> = ({ transaction: t, onDelete, onEdit, iconSize = 'md' }) => {
   const iconDimension = iconSize === 'sm' ? 'w-10 h-10 rounded-xl' : 'w-12 h-12 rounded-lg';
 
   return (
@@ -26,12 +27,24 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction: t, onDel
         <p className={`font-bold text-sm ${t.type === TransactionType.ENTRY ? 'text-emerald-500' : 'text-rose-500'}`}>
           {t.type === TransactionType.ENTRY ? '+' : '-'} R$ {t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
         </p>
-        <button
-          onClick={() => onDelete(t.id)}
-          className="text-[10px] text-slate-400 uppercase font-medium hover:text-rose-500 transition-colors"
-        >
-          Excluir
-        </button>
+        <div className="flex justify-end gap-2 mt-1">
+          {onEdit && (
+            <button
+              onClick={() => onEdit(t.id)}
+              className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-primary transition-all"
+              title="Editar"
+            >
+              <span className="material-symbols-outlined text-lg">edit</span>
+            </button>
+          )}
+          <button
+            onClick={() => onDelete(t.id)}
+            className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-rose-500 transition-all"
+            title="Excluir"
+          >
+            <span className="material-symbols-outlined text-lg">delete</span>
+          </button>
+        </div>
       </div>
     </div>
   );

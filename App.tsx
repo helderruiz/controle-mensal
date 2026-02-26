@@ -87,6 +87,10 @@ const App: React.FC = () => {
     setTransactions(prev => prev.filter(t => t.id !== id));
   };
 
+  const updateTransaction = (id: string, updatedData: Omit<Transaction, 'id'>) => {
+    setTransactions(prev => prev.map(t => t.id === id ? { ...updatedData, id } : t));
+  };
+
   // Aguardando resolução da sessão inicial
   if (session === null) {
     return (
@@ -122,6 +126,9 @@ const App: React.FC = () => {
 
         <Route path="/transaction/new" element={
           isAuthenticated ? <TransactionDetails onSave={addTransactions} /> : <Navigate to="/login" replace />
+        } />
+        <Route path="/transaction/edit/:id" element={
+          isAuthenticated ? <TransactionDetails onSave={(data) => updateTransaction(window.location.hash.split('/').pop() || '', data[0])} transactions={transactions} /> : <Navigate to="/login" replace />
         } />
       </Routes>
     </HashRouter>
