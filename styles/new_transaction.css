@@ -1,0 +1,49 @@
+.new-transaction-container {
+  padding-top: 60px;
+  padding-bottom: 40px;
+}
+
+@media (max-width: 768px) {
+  .new-transaction-container {
+    padding-top: 80px;
+    padding-bottom: 40px;
+  }
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.transaction-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-grid { 
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 480px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+.form-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted-light);
+  text-transform: uppercase;
+}
+
+.submit-btn {
+  margin-top: 12px;
+  padding: 18px;
+}
