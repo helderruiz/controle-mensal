@@ -6,7 +6,7 @@ import {
 } from 'recharts';
 import { Transaction, TransactionType } from '../types';
 import { COLORS } from '../constants';
-import { formatBRL, filterByMonth } from '../utils';
+import { formatBRL, filterByMonth, parseDateSafe } from '../utils';
 
 interface ReportsProps {
   transactions: Transaction[];
@@ -77,7 +77,7 @@ const Reports: React.FC<ReportsProps> = ({ transactions }) => {
 
     // Total do ano atual
     const yearTotal = transactions.filter(t => {
-      const date = new Date(t.date);
+      const date = parseDateSafe(t.date);
       return date.getFullYear() === currentDate.getFullYear();
     });
     const totalEntries = yearTotal.filter(t => t.type === TransactionType.ENTRY).reduce((a, t) => a + t.amount, 0);

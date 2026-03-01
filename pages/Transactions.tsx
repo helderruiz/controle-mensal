@@ -30,9 +30,9 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, deleteTransac
       <header className="flex-shrink-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
         <div className="px-4 pt-6 pb-2 flex items-center justify-between">
           <h1 className="text-lg font-bold tracking-tight">Extrato Detalhado</h1>
-          <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-white/10">
+          {/* <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-white/10">
             <span className="material-symbols-outlined">download</span>
-          </button>
+          </button> */}
         </div>
 
         <div className="px-4 py-4 flex gap-3">

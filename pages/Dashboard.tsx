@@ -48,7 +48,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, addTransaction, del
     addTransaction({
       description: desc,
       amount: parseFloat(val),
-      date: new Date().toISOString().split('T')[0],
+      date: currentDate.toISOString().split('T')[0],
       type,
       category: TransactionCategory.OTHERS
     });
