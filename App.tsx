@@ -14,40 +14,7 @@ import Layout from './components/Layout';
 import { Transaction, TransactionType, TransactionCategory } from './types';
 import logo from './img/icone controle financeiro.png';
 
-const INITIAL_TRANSACTIONS: Transaction[] = [
-  {
-    id: '1',
-    description: 'Palheta / Sup.GPS',
-    amount: 36.90,
-    date: '2024-02-16',
-    type: TransactionType.EXIT,
-    category: TransactionCategory.TRANSPORT
-  },
-  {
-    id: '2',
-    description: 'Prest. Casa',
-    amount: 800.00,
-    date: '2024-02-12',
-    type: TransactionType.EXIT,
-    category: TransactionCategory.RENT
-  },
-  {
-    id: '3',
-    description: 'Salário',
-    amount: 4847.70,
-    date: '2025-05-05',
-    type: TransactionType.ENTRY,
-    category: TransactionCategory.SALARY
-  },
-  {
-    id: '4',
-    description: 'iFood - Restaurante',
-    amount: 42.90,
-    date: '2025-05-20',
-    type: TransactionType.EXIT,
-    category: TransactionCategory.FOOD
-  }
-];
+const INITIAL_TRANSACTIONS: Transaction[] = [];
 
 const App: React.FC = () => {
   // null = ainda carregando, Session = logado, false = não logado
