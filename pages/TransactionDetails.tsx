@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Transaction, TransactionType, TransactionCategory } from '../types';
+import { formatDateToYYYYMMDD } from '../utils';
 
 interface TransactionDetailsProps {
   onSave: (transactions: Omit<Transaction, 'id'>[]) => void;
@@ -10,11 +10,21 @@ interface TransactionDetailsProps {
 
 const TransactionDetails: React.FC<TransactionDetailsProps> = ({ onSave, transactions = [] }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams<{ id: string }>();
+
+  // Obter data preferencial (da URL ?date=..., do mês selecionado no Dashboard, ou data atual)
+  const getInitialDate = () => {
+    const queryDate = new URLSearchParams(location.search).get('date');
+    if (queryDate) return queryDate;
+    const savedActiveDate = sessionStorage.getItem('activeMonthDate');
+    if (savedActiveDate) return savedActiveDate;
+    return formatDateToYYYYMMDD(new Date());
+  };
   
   const [desc, setDesc] = useState('');
   const [val, setVal] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(getInitialDate());
   const [type, setType] = useState<TransactionType>(TransactionType.EXIT);
   const [cat, setCat] = useState<TransactionCategory>(TransactionCategory.FOOD);
   const [repeat, setRepeat] = useState<'NONE' | 'MONTHLY'>('NONE');
@@ -39,13 +49,22 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({ onSave, transac
     }
   }, [id, transactions]);
 
+  const handleSetToday = () => {
+    setDate(formatDateToYYYYMMDD(new Date()));
+  };
+
+  const handleSetYesterday = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    setDate(formatDateToYYYYMMDD(d));
+  };
+
   const handleSave = () => {
     if (!desc || !val) return;
 
     const amountPerParcel = parseFloat(val);
     
     if (isEditing) {
-      // Para edição, apenas salvamos a transação atual (não suportamos re-parcelar na edição direto aqui por simplicidade)
       onSave([{
         description: desc,
         amount: amountPerParcel,
@@ -60,12 +79,11 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({ onSave, transac
       const count = launchType === 'INSTALLMENT' ? parseInt(installments) : 1;
       const generatedTransactions: Omit<Transaction, 'id'>[] = [];
 
-      // Gerar N transações para os meses seguintes
       for (let i = 0; i < count; i++) {
-        const baseDate = new Date(date + "T12:00:00"); // Meio-dia para evitar problemas de fuso
+        const baseDate = new Date(date + "T12:00:00");
         baseDate.setMonth(baseDate.getMonth() + i);
         
-        const formattedDate = baseDate.toISOString().split('T')[0];
+        const formattedDate = formatDateToYYYYMMDD(baseDate);
         const parcelDesc = count > 1 ? `${desc} (${i + 1}/${count})` : desc;
 
         generatedTransactions.push({
@@ -82,7 +100,7 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({ onSave, transac
       onSave(generatedTransactions);
     }
     
-    navigate(-1); // Voltar para onde estava
+    navigate(-1);
   };
 
   return (
@@ -118,7 +136,7 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({ onSave, transac
             <select 
               value={type}
               onChange={e => setType(e.target.value as TransactionType)}
-              className="w-full py-4 bg-white dark:bg-slate-800 border-none rounded-2xl shadow-sm focus:ring-2 focus:ring-primary/50 dark:text-white"
+              className="w-full py-4 bg-white dark:bg-slate-800 border-none rounded-2xl shadow-sm focus:ring-2 focus:ring-primary/50 dark:text-white font-bold"
             >
               <option value={TransactionType.EXIT}>Saída</option>
               <option value={TransactionType.ENTRY}>Entrada</option>
@@ -129,7 +147,7 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({ onSave, transac
             <select 
               value={cat}
               onChange={e => setCat(e.target.value as TransactionCategory)}
-              className="w-full py-4 bg-white dark:bg-slate-800 border-none rounded-2xl shadow-sm focus:ring-2 focus:ring-primary/50 dark:text-white"
+              className="w-full py-4 bg-white dark:bg-slate-800 border-none rounded-2xl shadow-sm focus:ring-2 focus:ring-primary/50 dark:text-white font-semibold"
             >
               {Object.values(TransactionCategory).map(c => (
                 <option key={c} value={c}>{c}</option>
@@ -153,12 +171,30 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({ onSave, transac
           </div>
         </div>
 
-        <div className="space-y-1">
-          <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider ml-1">Data</label>
+        <div className="space-y-2">
+          <div className="flex justify-between items-center ml-1">
+            <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Data do Lançamento</label>
+            <div className="flex gap-2">
+              <button 
+                type="button" 
+                onClick={handleSetToday}
+                className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md hover:bg-primary/20"
+              >
+                Hoje
+              </button>
+              <button 
+                type="button" 
+                onClick={handleSetYesterday}
+                className="text-[10px] font-bold text-slate-500 bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-md hover:bg-slate-300"
+              >
+                Ontem
+              </button>
+            </div>
+          </div>
           <input 
             value={date}
             onChange={e => setDate(e.target.value)}
-            className="w-full px-4 py-4 bg-white dark:bg-slate-800 border-none rounded-2xl shadow-sm focus:ring-2 focus:ring-primary/50 dark:text-white" 
+            className="w-full px-4 py-4 bg-white dark:bg-slate-800 border-none rounded-2xl shadow-sm focus:ring-2 focus:ring-primary/50 dark:text-white font-medium" 
             type="date" 
           />
         </div>
@@ -216,4 +252,5 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({ onSave, transac
     </div>
   );
 };
+
 export default TransactionDetails;
