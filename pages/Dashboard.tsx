@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Transaction, TransactionType, TransactionCategory } from '../types';
-import { filterByMonth, formatBRL, formatDateToYYYYMMDD, parseDateSafe, getCustomCategories } from '../utils';
+import { filterByMonth, formatBRL, formatDateToYYYYMMDD, parseDateSafe, getCustomCategories, addCustomCategory } from '../utils';
 import SummaryCard from '../components/SummaryCard';
 import TransactionItem from '../components/TransactionItem';
+import { CategoryPicker } from '../components/CategoryPicker';
 
 interface DashboardProps {
   transactions: Transaction[];
@@ -37,8 +38,12 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, addTransaction, del
 
   // Lista combinada de categorias (padrão + customizadas do localStorage)
   const [customCategories, setCustomCategories] = useState<string[]>(() => getCustomCategories());
-  const defaultCategories = Object.values(TransactionCategory);
-  const allCategories = Array.from(new Set([...defaultCategories, ...customCategories]));
+
+  const handleAddCustomCategory = (newCat: string) => {
+    const updated = addCustomCategory(newCat);
+    setCustomCategories(updated);
+    return updated;
+  };
 
   // Recarregar categorias caso o usuário navegue ou mude algo
   useEffect(() => {
@@ -173,13 +178,13 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, addTransaction, del
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div className="relative col-span-1">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">R$</span>
               <input
                 value={val}
                 onChange={e => setVal(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-primary text-xs p-3 pl-8 dark:text-white font-bold"
+                className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-primary text-xs p-3.5 pl-8 dark:text-white font-bold"
                 placeholder="0,00"
                 type="number"
                 step="0.01"
@@ -189,24 +194,24 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, addTransaction, del
             <select
               value={type}
               onChange={e => setType(e.target.value as TransactionType)}
-              className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-primary text-xs p-3 dark:text-white font-semibold col-span-1"
+              className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-primary text-xs p-3.5 dark:text-white font-bold"
             >
               <option value={TransactionType.EXIT}>Saída</option>
               <option value={TransactionType.ENTRY}>Entrada</option>
             </select>
-
-            <select
-              value={category}
-              onChange={e => setCategory(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-primary text-xs p-3 dark:text-white font-semibold col-span-1 truncate"
-            >
-              {allCategories.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Categoria</label>
+            <CategoryPicker
+              value={category}
+              onChange={setCategory}
+              customCategories={customCategories}
+              onAddCustomCategory={handleAddCustomCategory}
+            />
+          </div>
+
+          <div className="flex items-center gap-2 pt-1">
             <span className="text-xs font-bold text-slate-400 dark:text-slate-500 whitespace-nowrap">Data do lançamento:</span>
             <input
               type="date"
