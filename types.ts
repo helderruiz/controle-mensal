@@ -25,6 +25,7 @@ export interface Transaction {
   repetition?: 'NONE' | 'MONTHLY';
   installmentType?: 'FIXED' | 'INSTALLMENT';
   installmentsCount?: number;
+  installmentGroupId?: string;
 }
 
 export interface User {

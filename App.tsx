@@ -52,7 +52,17 @@ const App: React.FC = () => {
     setTransactions(prev => [...preparedItems, ...prev]);
   };
 
-  const deleteTransaction = (id: string) => {
+  const deleteTransaction = (id: string, deleteSeries?: boolean) => {
+    if (deleteSeries) {
+      // Encontrar o groupId da transação
+      const target = transactions.find(t => t.id === id);
+      if (target?.installmentGroupId) {
+        // Deletar todas do mesmo grupo
+        setTransactions(prev => prev.filter(t => t.installmentGroupId !== target.installmentGroupId));
+        return;
+      }
+    }
+    // Deletar apenas esta
     setTransactions(prev => prev.filter(t => t.id !== id));
   };
 
@@ -91,7 +101,7 @@ const App: React.FC = () => {
           <Route element={isAuthenticated ? <Layout /> : <Navigate to="/login" replace />}>
             <Route index element={<Dashboard transactions={transactions} addTransaction={(t) => addTransactions([t])} deleteTransaction={deleteTransaction} />} />
             <Route path="/reports" element={<Reports transactions={transactions} />} />
-            <Route path="/transactions" element={<Transactions transactions={transactions} deleteTransaction={deleteTransaction} />} />
+            <Route path="/transactions" element={<Transactions transactions={transactions} deleteTransaction={(id, deleteSeries) => deleteTransaction(id, deleteSeries)} />} />
             <Route path="/profile" element={<Profile session={session as Session} />} />
           </Route>
 

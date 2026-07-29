@@ -7,7 +7,7 @@ import { parseDateSafe } from '../utils';
 
 interface TransactionsProps {
   transactions: Transaction[];
-  deleteTransaction: (id: string) => void;
+  deleteTransaction: (id: string, deleteSeries?: boolean) => void;
 }
 
 const MONTH_NAMES = [

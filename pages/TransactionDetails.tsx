@@ -89,6 +89,7 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({ onSave, transac
     } else {
       const count = launchType === 'INSTALLMENT' ? parseInt(installments) : 1;
       const generatedTransactions: Omit<Transaction, 'id'>[] = [];
+      const groupId = count > 1 ? Math.random().toString(36).substring(2, 11) : undefined;
 
       for (let i = 0; i < count; i++) {
         const baseDate = new Date(date + "T12:00:00");
@@ -105,7 +106,8 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({ onSave, transac
           category: finalCategory,
           repetition: repeat,
           installmentType: launchType,
-          installmentsCount: count > 1 ? count : undefined
+          installmentsCount: count > 1 ? count : undefined,
+          installmentGroupId: groupId
         });
       }
       onSave(generatedTransactions);

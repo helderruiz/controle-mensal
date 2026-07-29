@@ -9,7 +9,7 @@ import { CategoryPicker } from '../components/CategoryPicker';
 interface DashboardProps {
   transactions: Transaction[];
   addTransaction: (t: Omit<Transaction, 'id'>) => void;
-  deleteTransaction: (id: string) => void;
+  deleteTransaction: (id: string, deleteSeries?: boolean) => void;
 }
 
 const months = [
