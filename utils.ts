@@ -1,4 +1,3 @@
-
 import { Transaction } from './types';
 
 /**
@@ -40,3 +39,36 @@ export const formatDateToYYYYMMDD = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
+const CUSTOM_CATEGORIES_KEY = 'custom_categories';
+
+/**
+ * Obtém a lista de categorias personalizadas do localStorage.
+ */
+export const getCustomCategories = (): string[] => {
+  try {
+    const saved = localStorage.getItem(CUSTOM_CATEGORIES_KEY);
+    return saved ? JSON.parse(saved) : ['Gasolina', 'Farmácia'];
+  } catch (e) {
+    return ['Gasolina', 'Farmácia'];
+  }
+};
+
+/**
+ * Adiciona uma nova categoria personalizada ao localStorage se ainda não existir.
+ */
+export const addCustomCategory = (newCategory: string): string[] => {
+  const trimmed = newCategory.trim();
+  if (!trimmed) return getCustomCategories();
+  
+  const current = getCustomCategories();
+  // Verificar sem diferenciar maiúsculas/minúsculas
+  const exists = current.some(c => c.toLowerCase() === trimmed.toLowerCase());
+  
+  if (!exists) {
+    const updated = [...current, trimmed];
+    localStorage.setItem(CUSTOM_CATEGORIES_KEY, JSON.stringify(updated));
+    return updated;
+  }
+  
+  return current;
+};

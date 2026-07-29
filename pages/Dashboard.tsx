@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Transaction, TransactionType, TransactionCategory } from '../types';
-import { filterByMonth, formatBRL, formatDateToYYYYMMDD, parseDateSafe } from '../utils';
+import { filterByMonth, formatBRL, formatDateToYYYYMMDD, parseDateSafe, getCustomCategories } from '../utils';
 import SummaryCard from '../components/SummaryCard';
 import TransactionItem from '../components/TransactionItem';
 
@@ -32,7 +32,18 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, addTransaction, del
   const [desc, setDesc] = useState('');
   const [val, setVal] = useState('');
   const [type, setType] = useState<TransactionType>(TransactionType.EXIT);
+  const [category, setCategory] = useState<string>(TransactionCategory.FOOD);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
+
+  // Lista combinada de categorias (padrão + customizadas do localStorage)
+  const [customCategories, setCustomCategories] = useState<string[]>(() => getCustomCategories());
+  const defaultCategories = Object.values(TransactionCategory);
+  const allCategories = Array.from(new Set([...defaultCategories, ...customCategories]));
+
+  // Recarregar categorias caso o usuário navegue ou mude algo
+  useEffect(() => {
+    setCustomCategories(getCustomCategories());
+  }, []);
 
   // Atualiza quickDate e sessionStorage sempre que o mês ativo muda
   useEffect(() => {
@@ -79,7 +90,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, addTransaction, del
       amount: parseFloat(val),
       date: quickDate,
       type,
-      category: TransactionCategory.OTHERS
+      category: category || TransactionCategory.OTHERS
     });
     setDesc('');
     setVal('');
@@ -162,25 +173,36 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, addTransaction, del
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">R$</span>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="relative col-span-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">R$</span>
               <input
                 value={val}
                 onChange={e => setVal(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-primary text-sm p-3 pl-9 dark:text-white font-bold"
+                className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-primary text-xs p-3 pl-8 dark:text-white font-bold"
                 placeholder="0,00"
                 type="number"
                 step="0.01"
               />
             </div>
+
             <select
               value={type}
               onChange={e => setType(e.target.value as TransactionType)}
-              className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-primary text-sm p-3 dark:text-white font-semibold"
+              className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-primary text-xs p-3 dark:text-white font-semibold col-span-1"
             >
               <option value={TransactionType.EXIT}>Saída</option>
               <option value={TransactionType.ENTRY}>Entrada</option>
+            </select>
+
+            <select
+              value={category}
+              onChange={e => setCategory(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-primary text-xs p-3 dark:text-white font-semibold col-span-1 truncate"
+            >
+              {allCategories.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
             </select>
           </div>
 

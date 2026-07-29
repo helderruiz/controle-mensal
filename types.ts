@@ -21,7 +21,7 @@ export interface Transaction {
   amount: number;
   date: string;
   type: TransactionType;
-  category: TransactionCategory;
+  category: TransactionCategory | string;
   repetition?: 'NONE' | 'MONTHLY';
   installmentType?: 'FIXED' | 'INSTALLMENT';
   installmentsCount?: number;

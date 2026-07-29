@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Transaction, TransactionType, TransactionCategory } from '../types';
-import { formatDateToYYYYMMDD } from '../utils';
+import { formatDateToYYYYMMDD, getCustomCategories, addCustomCategory } from '../utils';
 
 interface TransactionDetailsProps {
   onSave: (transactions: Omit<Transaction, 'id'>[]) => void;
@@ -26,7 +26,12 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({ onSave, transac
   const [val, setVal] = useState('');
   const [date, setDate] = useState(getInitialDate());
   const [type, setType] = useState<TransactionType>(TransactionType.EXIT);
-  const [cat, setCat] = useState<TransactionCategory>(TransactionCategory.FOOD);
+  
+  const [customCategoriesList, setCustomCategoriesList] = useState<string[]>(() => getCustomCategories());
+  const [cat, setCat] = useState<string>(TransactionCategory.FOOD);
+  const [isCreatingNewCat, setIsCreatingNewCat] = useState(false);
+  const [newCatInput, setNewCatInput] = useState('');
+
   const [repeat, setRepeat] = useState<'NONE' | 'MONTHLY'>('NONE');
   const [launchType, setLaunchType] = useState<'FIXED' | 'INSTALLMENT'>('FIXED');
   const [installments, setInstallments] = useState('1');
@@ -49,6 +54,16 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({ onSave, transac
     }
   }, [id, transactions]);
 
+  const handleCategoryChange = (val: string) => {
+    if (val === 'NEW_CATEGORY_OPTION') {
+      setIsCreatingNewCat(true);
+      setCat('');
+    } else {
+      setIsCreatingNewCat(false);
+      setCat(val);
+    }
+  };
+
   const handleSetToday = () => {
     setDate(formatDateToYYYYMMDD(new Date()));
   };
@@ -62,6 +77,15 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({ onSave, transac
   const handleSave = () => {
     if (!desc || !val) return;
 
+    let finalCategory = cat;
+    if (isCreatingNewCat) {
+      if (!newCatInput.trim()) return;
+      finalCategory = newCatInput.trim();
+      addCustomCategory(finalCategory);
+    }
+
+    if (!finalCategory) finalCategory = TransactionCategory.OTHERS;
+
     const amountPerParcel = parseFloat(val);
     
     if (isEditing) {
@@ -70,7 +94,7 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({ onSave, transac
         amount: amountPerParcel,
         date: date,
         type: type,
-        category: cat,
+        category: finalCategory,
         repetition: repeat,
         installmentType: launchType,
         installmentsCount: launchType === 'INSTALLMENT' ? parseInt(installments) : undefined
@@ -91,7 +115,7 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({ onSave, transac
           amount: amountPerParcel,
           date: formattedDate,
           type,
-          category: cat,
+          category: finalCategory,
           repetition: repeat,
           installmentType: launchType,
           installmentsCount: count > 1 ? count : undefined
@@ -102,6 +126,13 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({ onSave, transac
     
     navigate(-1);
   };
+
+  // Montar lista completa de categorias (padrão + personalizadas)
+  const defaultCategories = Object.values(TransactionCategory);
+  // Filtrar duplicados se já existirem nas padrão
+  const extraCustomCategories = customCategoriesList.filter(
+    c => !defaultCategories.includes(c as any)
+  );
 
   return (
     <div className="pb-40 bg-slate-50 dark:bg-slate-900 min-h-screen">
@@ -124,7 +155,7 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({ onSave, transac
               value={desc}
               onChange={e => setDesc(e.target.value)}
               className="w-full pl-12 pr-4 py-4 bg-white dark:bg-slate-800 border-none rounded-2xl shadow-sm focus:ring-2 focus:ring-primary/50 transition-all dark:text-white" 
-              placeholder="Ex: Compra de Celular, Aluguel..." 
+              placeholder="Ex: Compra de Celular, Aluguel, Gasolina..." 
               type="text" 
             />
           </div>
@@ -142,19 +173,52 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({ onSave, transac
               <option value={TransactionType.ENTRY}>Entrada</option>
             </select>
           </div>
+
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider ml-1">Categoria</label>
             <select 
-              value={cat}
-              onChange={e => setCat(e.target.value as TransactionCategory)}
+              value={isCreatingNewCat ? 'NEW_CATEGORY_OPTION' : cat}
+              onChange={e => handleCategoryChange(e.target.value)}
               className="w-full py-4 bg-white dark:bg-slate-800 border-none rounded-2xl shadow-sm focus:ring-2 focus:ring-primary/50 dark:text-white font-semibold"
             >
-              {Object.values(TransactionCategory).map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
+              <optgroup label="Categorias Padrão">
+                {defaultCategories.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </optgroup>
+
+              {extraCustomCategories.length > 0 && (
+                <optgroup label="Minhas Categorias">
+                  {extraCustomCategories.map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </optgroup>
+              )}
+
+              <option value="NEW_CATEGORY_OPTION" className="text-primary font-bold">
+                ➕ Criar Nova Categoria...
+              </option>
             </select>
           </div>
         </div>
+
+        {/* Input para criar nova categoria personalizada */}
+        {isCreatingNewCat && (
+          <div className="space-y-1 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-primary/30 animate-in fade-in slide-in-from-top-2">
+            <label className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1">
+              <span className="material-symbols-outlined text-sm">label</span>
+              Nome da Nova Categoria
+            </label>
+            <input 
+              value={newCatInput}
+              onChange={e => setNewCatInput(e.target.value)}
+              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-primary text-sm font-semibold dark:text-white" 
+              placeholder="Ex: Gasolina, Farmácia, Pets, Saúde..." 
+              type="text" 
+              autoFocus
+            />
+          </div>
+        )}
 
         <div className="space-y-1">
           <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider ml-1">Valor</label>
