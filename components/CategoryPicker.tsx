@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { TransactionCategory } from '../types';
 import { CATEGORY_ICONS, CATEGORY_COLORS } from '../constants';
+import { getCustomCategoryEmoji } from '../utils';
 
 interface CategoryPickerProps {
   value: string;
   onChange: (category: string) => void;
   customCategories: string[];
-  onAddCustomCategory: (newCategory: string) => string[];
+  onAddCustomCategory: (newCategory: string, emoji: string) => string[];
 }
+
+const CATEGORY_EMOJIS = ['🏷️', '🏠', '🚗', '⛽', '💊', '🐾', '🍔', '🛒', '🎓', '🎮', '💡', '💰'];
 
 export const CategoryPicker: React.FC<CategoryPickerProps> = ({
   value,
@@ -18,6 +21,7 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [newCatName, setNewCatName] = useState('');
+  const [newCatEmoji, setNewCatEmoji] = useState(CATEGORY_EMOJIS[0]);
 
   const defaultCategories = Object.values(TransactionCategory);
   
@@ -37,9 +41,10 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
     if (!newCatName.trim()) return;
 
     const trimmed = newCatName.trim();
-    onAddCustomCategory(trimmed);
+    onAddCustomCategory(trimmed, newCatEmoji);
     onChange(trimmed);
     setNewCatName('');
+    setNewCatEmoji(CATEGORY_EMOJIS[0]);
     setIsAdding(false);
     setIsOpen(false);
   };
@@ -47,6 +52,7 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
   // Ícone e cor da categoria selecionada
   const selectedIcon = CATEGORY_ICONS[value] || 'category';
   const selectedColor = CATEGORY_COLORS[value] || 'bg-slate-500/20 text-slate-500';
+  const selectedEmoji = getCustomCategoryEmoji(value);
 
   return (
     <>
@@ -58,7 +64,7 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
       >
         <div className="flex items-center gap-3 min-w-0">
           <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${selectedColor}`}>
-            <span className="material-symbols-outlined text-lg">{selectedIcon}</span>
+            {selectedEmoji ? <span className="text-lg">{selectedEmoji}</span> : <span className="material-symbols-outlined text-lg">{selectedIcon}</span>}
           </div>
           <span className="font-bold text-sm text-slate-700 dark:text-slate-200 truncate">
             {value || 'Selecionar Categoria'}
@@ -128,6 +134,22 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
                       Salvar
                     </button>
                   </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Escolha um ícone</p>
+                    <div className="grid grid-cols-6 gap-2">
+                      {CATEGORY_EMOJIS.map(emoji => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => setNewCatEmoji(emoji)}
+                          aria-label={`Usar ícone ${emoji}`}
+                          className={`h-10 rounded-xl text-lg transition-all ${newCatEmoji === emoji ? 'bg-primary/15 ring-2 ring-primary scale-105' : 'bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-white/10'}`}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </form>
               )}
 
@@ -141,6 +163,7 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
                     {extraCategories.map(catName => {
                       const icon = CATEGORY_ICONS[catName] || 'category';
                       const color = CATEGORY_COLORS[catName] || 'bg-slate-500/20 text-slate-500';
+                      const emoji = getCustomCategoryEmoji(catName);
                       const isSelected = value === catName;
 
                       return (
@@ -155,7 +178,7 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
                           }`}
                         >
                           <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${color}`}>
-                            <span className="material-symbols-outlined text-sm">{icon}</span>
+                            {emoji ? <span className="text-base">{emoji}</span> : <span className="material-symbols-outlined text-sm">{icon}</span>}
                           </div>
                           <span className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate flex-1">
                             {catName}

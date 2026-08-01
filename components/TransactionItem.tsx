@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Transaction, TransactionType } from '../types';
 import { CATEGORY_ICONS, CATEGORY_COLORS } from '../constants';
+import { getCustomCategoryEmoji } from '../utils';
 
 interface TransactionItemProps {
   transaction: Transaction;
@@ -15,6 +16,7 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction: t, onDel
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const iconDimension = iconSize === 'sm' ? 'w-10 h-10 rounded-xl' : 'w-12 h-12 rounded-lg';
   const isInstallment = !!(t.installmentGroupId || (t.installmentType === 'INSTALLMENT' && t.installmentsCount && t.installmentsCount > 1));
+  const categoryEmoji = getCustomCategoryEmoji(t.category);
 
   const handleDeleteClick = () => {
     if (isInstallment) {
@@ -28,7 +30,7 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction: t, onDel
     <>
       <div className="flex items-center gap-4 bg-white dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/10 shadow-sm">
         <div className={`${iconDimension} flex items-center justify-center ${CATEGORY_COLORS[t.category] || 'bg-slate-100 text-slate-500'} shrink-0`}>
-          <span className="material-symbols-outlined">{CATEGORY_ICONS[t.category] || 'receipt'}</span>
+          {categoryEmoji ? <span className="text-xl">{categoryEmoji}</span> : <span className="material-symbols-outlined">{CATEGORY_ICONS[t.category] || 'receipt'}</span>}
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-bold text-sm truncate text-slate-700 dark:text-slate-200">{t.description}</p>
@@ -86,7 +88,7 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction: t, onDel
             {/* Descrição da transação */}
             <div className="bg-slate-50 dark:bg-white/5 rounded-2xl p-3 mb-5 flex items-center gap-3">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${CATEGORY_COLORS[t.category] || 'bg-slate-100 text-slate-500'}`}>
-                <span className="material-symbols-outlined text-sm">{CATEGORY_ICONS[t.category] || 'receipt'}</span>
+                {categoryEmoji ? <span className="text-base">{categoryEmoji}</span> : <span className="material-symbols-outlined text-sm">{CATEGORY_ICONS[t.category] || 'receipt'}</span>}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">{t.description}</p>

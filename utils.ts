@@ -80,6 +80,7 @@ export const formatDateToYYYYMMDD = (date: Date): string => {
 };
 
 const CUSTOM_CATEGORIES_KEY = 'custom_categories';
+const CUSTOM_CATEGORY_EMOJIS_KEY = 'custom_category_emojis';
 
 /**
  * Obtém a lista de categorias personalizadas do localStorage.
@@ -93,10 +94,21 @@ export const getCustomCategories = (): string[] => {
   }
 };
 
+/** Obtém o emoji associado a uma categoria personalizada. */
+export const getCustomCategoryEmoji = (category: string): string | undefined => {
+  try {
+    const saved = localStorage.getItem(CUSTOM_CATEGORY_EMOJIS_KEY);
+    const emojis: Record<string, string> = saved ? JSON.parse(saved) : {};
+    return emojis[category];
+  } catch (e) {
+    return undefined;
+  }
+};
+
 /**
  * Adiciona uma nova categoria personalizada ao localStorage se ainda não existir.
  */
-export const addCustomCategory = (newCategory: string): string[] => {
+export const addCustomCategory = (newCategory: string, emoji = '🏷️'): string[] => {
   const trimmed = newCategory.trim();
   if (!trimmed) return getCustomCategories();
   
@@ -107,6 +119,14 @@ export const addCustomCategory = (newCategory: string): string[] => {
   if (!exists) {
     const updated = [...current, trimmed];
     localStorage.setItem(CUSTOM_CATEGORIES_KEY, JSON.stringify(updated));
+    try {
+      const savedEmojis = localStorage.getItem(CUSTOM_CATEGORY_EMOJIS_KEY);
+      const emojis: Record<string, string> = savedEmojis ? JSON.parse(savedEmojis) : {};
+      emojis[trimmed] = emoji;
+      localStorage.setItem(CUSTOM_CATEGORY_EMOJIS_KEY, JSON.stringify(emojis));
+    } catch (e) {
+      // A categoria continua disponível mesmo se o emoji não puder ser salvo.
+    }
     return updated;
   }
   

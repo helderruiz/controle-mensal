@@ -39,8 +39,8 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, addTransaction, del
   // Lista combinada de categorias (padrão + customizadas do localStorage)
   const [customCategories, setCustomCategories] = useState<string[]>(() => getCustomCategories());
 
-  const handleAddCustomCategory = (newCat: string) => {
-    const updated = addCustomCategory(newCat);
+  const handleAddCustomCategory = (newCat: string, emoji: string) => {
+    const updated = addCustomCategory(newCat, emoji);
     setCustomCategories(updated);
     return updated;
   };

@@ -4,7 +4,7 @@ import { Transaction, TransactionType } from '../types';
 import TransactionItem from '../components/TransactionItem';
 import FilterChip from '../components/FilterChip';
 import { CATEGORY_COLORS, CATEGORY_ICONS } from '../constants';
-import { formatBRL, parseDateSafe } from '../utils';
+import { formatBRL, getCustomCategoryEmoji, parseDateSafe } from '../utils';
 
 interface TransactionsProps {
   transactions: Transaction[];
@@ -52,6 +52,7 @@ const InstallmentGroup: React.FC<InstallmentGroupProps> = ({ transactions, expan
   const oldest = transactions[transactions.length - 1];
   const description = getInstallmentBaseDescription(latest.description);
   const totalInstallments = latest.installmentsCount || transactions.length;
+  const categoryEmoji = getCustomCategoryEmoji(latest.category);
 
   return (
     <div className="rounded-xl border border-blue-100 dark:border-blue-900/50 bg-blue-50/40 dark:bg-blue-950/20 overflow-hidden">
@@ -62,7 +63,7 @@ const InstallmentGroup: React.FC<InstallmentGroupProps> = ({ transactions, expan
         className="w-full flex items-center gap-4 bg-white dark:bg-white/5 p-4 text-left hover:bg-blue-50/60 dark:hover:bg-white/10 transition-colors"
       >
         <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${CATEGORY_COLORS[latest.category] || 'bg-slate-100 text-slate-500'}`}>
-          <span className="material-symbols-outlined">{CATEGORY_ICONS[latest.category] || 'receipt'}</span>
+          {categoryEmoji ? <span className="text-xl">{categoryEmoji}</span> : <span className="material-symbols-outlined">{CATEGORY_ICONS[latest.category] || 'receipt'}</span>}
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-bold text-sm truncate text-slate-700 dark:text-slate-200">{description}</p>

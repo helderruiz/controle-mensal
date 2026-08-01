@@ -53,8 +53,8 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({ onSave, transac
     }
   }, [id, transactions]);
 
-  const handleAddCustomCategory = (newCat: string) => {
-    const updated = addCustomCategory(newCat);
+  const handleAddCustomCategory = (newCat: string, emoji: string) => {
+    const updated = addCustomCategory(newCat, emoji);
     setCustomCategoriesList(updated);
     return updated;
   };
