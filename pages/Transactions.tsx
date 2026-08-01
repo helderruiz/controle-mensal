@@ -19,10 +19,38 @@ interface InstallmentGroupProps {
   onEdit: (id: string) => void;
 }
 
+const getInstallmentBaseDescription = (description: string) =>
+  description.replace(/\s*\(\d+\/\d+\)\s*$/, '').trim();
+
+/**
+ * Lançamentos novos usam installmentGroupId. Para os registros já existentes,
+ * que só guardam o número da parcela na descrição, criamos uma chave estável
+ * para que também possam ser exibidos em grupo.
+ */
+const getInstallmentGroupKey = (transaction: Transaction): string | undefined => {
+  if (transaction.installmentGroupId) return `id:${transaction.installmentGroupId}`;
+
+  const isLegacyInstallment =
+    transaction.installmentType === 'INSTALLMENT' &&
+    (transaction.installmentsCount || 0) > 1 &&
+    /\(\d+\/\d+\)\s*$/.test(transaction.description);
+
+  if (!isLegacyInstallment) return undefined;
+
+  return [
+    'legacy',
+    getInstallmentBaseDescription(transaction.description).toLowerCase(),
+    transaction.amount,
+    transaction.category,
+    transaction.type,
+    transaction.installmentsCount,
+  ].join(':');
+};
+
 const InstallmentGroup: React.FC<InstallmentGroupProps> = ({ transactions, expanded, onToggle, onDelete, onEdit }) => {
   const latest = transactions[0];
   const oldest = transactions[transactions.length - 1];
-  const description = latest.description.replace(/\s*\(\d+\/\d+\)\s*$/, '');
+  const description = getInstallmentBaseDescription(latest.description);
   const totalInstallments = latest.installmentsCount || transactions.length;
 
   return (
@@ -114,20 +142,21 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, deleteTransac
 
   const installmentGroups = new Map<string, Transaction[]>();
   filtered.forEach(transaction => {
-    if (!transaction.installmentGroupId) return;
-    const group = installmentGroups.get(transaction.installmentGroupId) || [];
+    const groupKey = getInstallmentGroupKey(transaction);
+    if (!groupKey) return;
+    const group = installmentGroups.get(groupKey) || [];
     group.push(transaction);
-    installmentGroups.set(transaction.installmentGroupId, group);
+    installmentGroups.set(groupKey, group);
   });
 
   const visibleItems = filtered.reduce<Array<Transaction | Transaction[]>>((items, transaction) => {
-    const groupId = transaction.installmentGroupId;
-    if (!groupId) {
+    const groupKey = getInstallmentGroupKey(transaction);
+    if (!groupKey) {
       items.push(transaction);
       return items;
     }
 
-    const group = installmentGroups.get(groupId) || [];
+    const group = installmentGroups.get(groupKey) || [];
     if (group[0].id === transaction.id) items.push(group.length > 1 ? group : transaction);
     return items;
   }, []);
@@ -193,10 +222,10 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, deleteTransac
           <div className="space-y-3 pb-20">
             {visibleItems.map(item => Array.isArray(item) ? (
               <InstallmentGroup
-                key={item[0].installmentGroupId}
+                key={getInstallmentGroupKey(item[0])}
                 transactions={item}
-                expanded={expandedGroups.has(item[0].installmentGroupId!)}
-                onToggle={() => toggleGroup(item[0].installmentGroupId!)}
+                expanded={expandedGroups.has(getInstallmentGroupKey(item[0])!)}
+                onToggle={() => toggleGroup(getInstallmentGroupKey(item[0])!)}
                 onDelete={deleteTransaction}
                 onEdit={(id) => navigate(`/transaction/edit/${id}`)}
               />
