@@ -69,7 +69,30 @@ const App: React.FC = () => {
   };
 
   const updateTransaction = (id: string, updatedData: Omit<Transaction, 'id'>) => {
-    setTransactions(prev => prev.map(t => t.id === id ? { ...updatedData, id } : t));
+    const target = transactions.find(t => t.id === id);
+    const groupKey = target ? getInstallmentGroupKey(target) : undefined;
+
+    setTransactions(prev => prev.map(transaction => {
+      const belongsToSeries = groupKey && getInstallmentGroupKey(transaction) === groupKey;
+      if (!belongsToSeries && transaction.id !== id) return transaction;
+
+      // Em parcelamentos, preserva as particularidades de cada parcela:
+      // data, número na descrição e identificador do grupo.
+      if (belongsToSeries) {
+        return {
+          ...transaction,
+          ...updatedData,
+          id: transaction.id,
+          date: transaction.date,
+          description: transaction.description,
+          installmentGroupId: transaction.installmentGroupId,
+          installmentType: transaction.installmentType,
+          installmentsCount: transaction.installmentsCount,
+        };
+      }
+
+      return { ...updatedData, id: transaction.id };
+    }));
   };
 
   if (session === null) {
