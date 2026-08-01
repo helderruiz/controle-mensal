@@ -30,6 +30,22 @@ export const formatBRL = (value: number): string =>
   value.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 
 /**
+ * Converte valores digitados no formato brasileiro ou internacional para número.
+ * Exemplos: "12,50", "12.50" e "1.234,56".
+ */
+export const parseCurrencyInput = (value: string): number | null => {
+  const raw = value.trim().replace(/\s/g, '').replace(/^R\$/i, '');
+  if (!raw) return null;
+
+  const normalized = raw.includes(',')
+    ? raw.replace(/\./g, '').replace(',', '.')
+    : raw;
+  const amount = Number(normalized);
+
+  return Number.isFinite(amount) ? amount : null;
+};
+
+/**
  * Formata um objeto Date para a string "YYYY-MM-DD" no fuso horário local.
  */
 export const formatDateToYYYYMMDD = (date: Date): string => {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Transaction, TransactionType, TransactionCategory } from '../types';
-import { filterByMonth, formatBRL, formatDateToYYYYMMDD, parseDateSafe, getCustomCategories, addCustomCategory } from '../utils';
+import { filterByMonth, formatBRL, formatDateToYYYYMMDD, parseDateSafe, getCustomCategories, addCustomCategory, parseCurrencyInput } from '../utils';
 import SummaryCard from '../components/SummaryCard';
 import TransactionItem from '../components/TransactionItem';
 import { CategoryPicker } from '../components/CategoryPicker';
@@ -89,10 +89,11 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, addTransaction, del
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!desc || !val) return;
+    const amount = parseCurrencyInput(val);
+    if (!desc || amount === null || amount <= 0) return;
     addTransaction({
       description: desc,
-      amount: parseFloat(val),
+      amount,
       date: quickDate,
       type,
       category: category || TransactionCategory.OTHERS
@@ -186,8 +187,9 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, addTransaction, del
                 onChange={e => setVal(e.target.value)}
                 className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-primary text-xs p-3.5 pl-8 dark:text-white font-bold"
                 placeholder="0,00"
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
+                aria-label="Valor do lançamento"
               />
             </div>
 

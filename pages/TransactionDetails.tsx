@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Transaction, TransactionType, TransactionCategory } from '../types';
-import { formatDateToYYYYMMDD, getCustomCategories, addCustomCategory } from '../utils';
+import { formatDateToYYYYMMDD, getCustomCategories, addCustomCategory, parseCurrencyInput } from '../utils';
 import { CategoryPicker } from '../components/CategoryPicker';
 
 interface TransactionDetailsProps {
@@ -70,10 +70,10 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({ onSave, transac
   };
 
   const handleSave = () => {
-    if (!desc || !val) return;
+    const amountPerParcel = parseCurrencyInput(val);
+    if (!desc || amountPerParcel === null || amountPerParcel <= 0) return;
 
     const finalCategory = cat || TransactionCategory.OTHERS;
-    const amountPerParcel = parseFloat(val);
     
     if (isEditing) {
       onSave([{
@@ -176,8 +176,9 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({ onSave, transac
               onChange={e => setVal(e.target.value)}
               className="w-full pl-12 pr-4 py-4 bg-white dark:bg-slate-800 border-none rounded-2xl shadow-sm focus:ring-2 focus:ring-primary/50 font-black text-2xl dark:text-white" 
               placeholder="0,00" 
-              type="number"
-              step="0.01"
+              type="text"
+              inputMode="decimal"
+              aria-label="Valor do lançamento"
             />
           </div>
         </div>

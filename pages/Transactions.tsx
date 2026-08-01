@@ -3,12 +3,73 @@ import { useNavigate } from 'react-router-dom';
 import { Transaction, TransactionType } from '../types';
 import TransactionItem from '../components/TransactionItem';
 import FilterChip from '../components/FilterChip';
-import { parseDateSafe } from '../utils';
+import { CATEGORY_COLORS, CATEGORY_ICONS } from '../constants';
+import { formatBRL, parseDateSafe } from '../utils';
 
 interface TransactionsProps {
   transactions: Transaction[];
   deleteTransaction: (id: string, deleteSeries?: boolean) => void;
 }
+
+interface InstallmentGroupProps {
+  transactions: Transaction[];
+  expanded: boolean;
+  onToggle: () => void;
+  onDelete: (id: string, deleteSeries?: boolean) => void;
+  onEdit: (id: string) => void;
+}
+
+const InstallmentGroup: React.FC<InstallmentGroupProps> = ({ transactions, expanded, onToggle, onDelete, onEdit }) => {
+  const latest = transactions[0];
+  const oldest = transactions[transactions.length - 1];
+  const description = latest.description.replace(/\s*\(\d+\/\d+\)\s*$/, '');
+  const totalInstallments = latest.installmentsCount || transactions.length;
+
+  return (
+    <div className="rounded-xl border border-blue-100 dark:border-blue-900/50 bg-blue-50/40 dark:bg-blue-950/20 overflow-hidden">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={expanded}
+        className="w-full flex items-center gap-4 bg-white dark:bg-white/5 p-4 text-left hover:bg-blue-50/60 dark:hover:bg-white/10 transition-colors"
+      >
+        <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${CATEGORY_COLORS[latest.category] || 'bg-slate-100 text-slate-500'}`}>
+          <span className="material-symbols-outlined">{CATEGORY_ICONS[latest.category] || 'receipt'}</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-sm truncate text-slate-700 dark:text-slate-200">{description}</p>
+          <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+            {totalInstallments} parcelas • {oldest.date} a {latest.date}
+          </p>
+          <span className="inline-block mt-1 text-[9px] font-bold bg-blue-500/10 text-blue-500 px-1.5 py-0.5 rounded-full">
+            PARCELADO
+          </span>
+        </div>
+        <div className="text-right shrink-0">
+          <p className={`font-bold text-sm ${latest.type === TransactionType.ENTRY ? 'text-emerald-500' : 'text-rose-500'}`}>
+            {latest.type === TransactionType.ENTRY ? '+' : '-'} R$ {formatBRL(latest.amount)}
+          </p>
+          <p className="text-[10px] text-slate-400 mt-1">por parcela</p>
+        </div>
+        <span className={`material-symbols-outlined text-slate-400 transition-transform ${expanded ? 'rotate-180' : ''}`}>expand_more</span>
+      </button>
+
+      {expanded && (
+        <div className="p-3 space-y-3 border-t border-blue-100 dark:border-blue-900/50">
+          {transactions.map(transaction => (
+            <TransactionItem
+              key={transaction.id}
+              transaction={transaction}
+              onDelete={onDelete}
+              onEdit={onEdit}
+              iconSize="sm"
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const MONTH_NAMES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -20,6 +81,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, deleteTransac
   const [filter, setFilter] = useState<'ALL' | 'ENTRY' | 'EXIT'>('ALL');
   const [selectedMonthYear, setSelectedMonthYear] = useState<string>('ALL'); // 'ALL' ou 'YYYY-MM'
   const [search, setSearch] = useState('');
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set());
 
   // Extrair meses/anos disponíveis nas transações para o filtro de mês
   const availableMonths = React.useMemo(() => {
@@ -49,6 +111,34 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, deleteTransac
       return matchesFilter && matchesMonth && matchesSearch;
     })
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const installmentGroups = new Map<string, Transaction[]>();
+  filtered.forEach(transaction => {
+    if (!transaction.installmentGroupId) return;
+    const group = installmentGroups.get(transaction.installmentGroupId) || [];
+    group.push(transaction);
+    installmentGroups.set(transaction.installmentGroupId, group);
+  });
+
+  const visibleItems = filtered.reduce<Array<Transaction | Transaction[]>>((items, transaction) => {
+    const groupId = transaction.installmentGroupId;
+    if (!groupId) {
+      items.push(transaction);
+      return items;
+    }
+
+    const group = installmentGroups.get(groupId) || [];
+    if (group[0].id === transaction.id) items.push(group.length > 1 ? group : transaction);
+    return items;
+  }, []);
+
+  const toggleGroup = (groupId: string) => {
+    setExpandedGroups(current => {
+      const next = new Set(current);
+      next.has(groupId) ? next.delete(groupId) : next.add(groupId);
+      return next;
+    });
+  };
 
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] overflow-hidden">
@@ -97,15 +187,24 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, deleteTransac
         <section>
           <div className="flex justify-between items-center mb-3 px-1">
             <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Movimentações ({filtered.length})
+              Itens no extrato ({visibleItems.length})
             </h2>
           </div>
           <div className="space-y-3 pb-20">
-            {filtered.map(t => (
-              <TransactionItem 
-                key={t.id} 
-                transaction={t} 
-                onDelete={deleteTransaction} 
+            {visibleItems.map(item => Array.isArray(item) ? (
+              <InstallmentGroup
+                key={item[0].installmentGroupId}
+                transactions={item}
+                expanded={expandedGroups.has(item[0].installmentGroupId!)}
+                onToggle={() => toggleGroup(item[0].installmentGroupId!)}
+                onDelete={deleteTransaction}
+                onEdit={(id) => navigate(`/transaction/edit/${id}`)}
+              />
+            ) : (
+              <TransactionItem
+                key={item.id}
+                transaction={item}
+                onDelete={deleteTransaction}
                 onEdit={(id) => navigate(`/transaction/edit/${id}`)}
               />
             ))}

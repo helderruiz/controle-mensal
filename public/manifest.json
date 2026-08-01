@@ -1,6 +1,6 @@
 {
-  "name": "BeautyBook",
-  "short_name": "BeautyBook",
+  "name": "Controle Mensal",
+  "short_name": "Controle Mensal",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

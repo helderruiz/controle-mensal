@@ -59,8 +59,8 @@ const Reports: React.FC<ReportsProps> = ({ transactions }) => {
     return { totalExits, totalEntries, balance, categoryData };
   }, [transactions, currentDate]);
 
-  // --- DADOS PARA MODO ANUAL (últimos 6 meses calculados) ---
-  const annualData = useMemo(() => {
+  // Fluxo exibido na visão mensal: seis meses até o período selecionado.
+  const recentCashFlow = useMemo(() => {
     const months = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
@@ -74,6 +74,25 @@ const Reports: React.FC<ReportsProps> = ({ transactions }) => {
         balance: entries - exits,
       });
     }
+
+    return months;
+  }, [transactions, currentDate]);
+
+  // --- DADOS PARA MODO ANUAL (janeiro a dezembro do ano selecionado) ---
+  const annualData = useMemo(() => {
+    const months = Array.from({ length: 12 }, (_, monthIndex) => {
+      const d = new Date(currentDate.getFullYear(), monthIndex, 1);
+      const filtered = filterByMonth(transactions, d);
+      const entries = filtered.filter(t => t.type === TransactionType.ENTRY).reduce((acc, t) => acc + t.amount, 0);
+      const exits = filtered.filter(t => t.type === TransactionType.EXIT).reduce((acc, t) => acc + t.amount, 0);
+
+      return {
+        month: MONTH_SHORT[monthIndex],
+        entries,
+        exits,
+        balance: entries - exits,
+      };
+    });
 
     // Total do ano atual
     const yearTotal = transactions.filter(t => {
@@ -100,6 +119,8 @@ const Reports: React.FC<ReportsProps> = ({ transactions }) => {
   const totalExits = isMonthly ? monthlyData.totalExits : annualData.totalExits;
   const totalEntries = isMonthly ? monthlyData.totalEntries : annualData.totalEntries;
   const balance = isMonthly ? monthlyData.balance : annualData.balance;
+  const cashFlowData = isMonthly ? recentCashFlow : annualData.months;
+  const cashFlowPeriodLabel = isMonthly ? 'Últimos 6 meses' : `Ano de ${currentDate.getFullYear()}`;
 
   return (
     <div className="pb-24">
@@ -224,15 +245,15 @@ const Reports: React.FC<ReportsProps> = ({ transactions }) => {
           )}
         </section>
 
-        {/* Gráfico de Barras — fluxo de caixa (últimos 6 meses, dados reais) */}
+        {/* Gráfico de Barras — fluxo de caixa */}
         <section>
           <div className="flex justify-between items-end mb-6">
             <h2 className="text-lg font-bold">Fluxo de Caixa</h2>
-            <span className="text-xs text-primary font-bold">Últimos 6 meses</span>
+            <span className="text-xs text-primary font-bold">{cashFlowPeriodLabel}</span>
           </div>
           <div className="bg-slate-50 dark:bg-white/5 rounded-2xl p-4 h-56">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={annualData.months} barGap={2}>
+              <BarChart data={cashFlowData} barGap={2}>
                 <XAxis dataKey="month" fontSize={9} axisLine={false} tickLine={false} />
                 <Tooltip
                   cursor={{ fill: 'rgba(0,0,0,0.04)' }}

@@ -1,5 +1,5 @@
 /* Simple, safe cache for same-origin static assets */
-const CACHE_NAME = 'beautybook-static-v1';
+const CACHE_NAME = 'controle-mensal-static-v1';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
