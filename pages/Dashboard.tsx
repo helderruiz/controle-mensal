@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Transaction } from '../types';
+import { Transaction, TransactionType } from '../types';
 import { filterByMonth, formatBRL, formatDateToYYYYMMDD, parseDateSafe } from '../utils';
 import SummaryCard from '../components/SummaryCard';
 import TransactionItem from '../components/TransactionItem';
