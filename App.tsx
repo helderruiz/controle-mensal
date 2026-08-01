@@ -13,6 +13,7 @@ import Signup from './pages/Signup';
 import Layout from './components/Layout';
 import IOSInstallBanner from './components/IOSInstallBanner';
 import { Transaction, TransactionType, TransactionCategory } from './types';
+import { getInstallmentGroupKey } from './utils';
 import logo from './img/icone controle financeiro.png';
 
 const INITIAL_TRANSACTIONS: Transaction[] = [];
@@ -56,9 +57,10 @@ const App: React.FC = () => {
     if (deleteSeries) {
       // Encontrar o groupId da transação
       const target = transactions.find(t => t.id === id);
-      if (target?.installmentGroupId) {
-        // Deletar todas do mesmo grupo
-        setTransactions(prev => prev.filter(t => t.installmentGroupId !== target.installmentGroupId));
+      const groupKey = target ? getInstallmentGroupKey(target) : undefined;
+      if (groupKey) {
+        // Deletar todas as parcelas, inclusive registros antigos sem groupId.
+        setTransactions(prev => prev.filter(t => getInstallmentGroupKey(t) !== groupKey));
         return;
       }
     }

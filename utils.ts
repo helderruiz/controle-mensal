@@ -45,6 +45,30 @@ export const parseCurrencyInput = (value: string): number | null => {
   return Number.isFinite(amount) ? amount : null;
 };
 
+export const getInstallmentBaseDescription = (description: string): string =>
+  description.replace(/\s*\(\d+\/\d+\)\s*$/, '').trim();
+
+/** Retorna a chave de um parcelamento, inclusive para registros antigos. */
+export const getInstallmentGroupKey = (transaction: Transaction): string | undefined => {
+  if (transaction.installmentGroupId) return `id:${transaction.installmentGroupId}`;
+
+  const isLegacyInstallment =
+    transaction.installmentType === 'INSTALLMENT' &&
+    (transaction.installmentsCount || 0) > 1 &&
+    /\(\d+\/\d+\)\s*$/.test(transaction.description);
+
+  if (!isLegacyInstallment) return undefined;
+
+  return [
+    'legacy',
+    getInstallmentBaseDescription(transaction.description).toLowerCase(),
+    transaction.amount,
+    transaction.category,
+    transaction.type,
+    transaction.installmentsCount,
+  ].join(':');
+};
+
 /**
  * Formata um objeto Date para a string "YYYY-MM-DD" no fuso horário local.
  */
