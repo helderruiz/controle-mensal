@@ -124,7 +124,7 @@ const App: React.FC = () => {
           } />
 
           <Route element={isAuthenticated ? <Layout /> : <Navigate to="/login" replace />}>
-            <Route index element={<Dashboard transactions={transactions} addTransaction={(t) => addTransactions([t])} deleteTransaction={deleteTransaction} />} />
+            <Route index element={<Dashboard transactions={transactions} deleteTransaction={deleteTransaction} />} />
             <Route path="/reports" element={<Reports transactions={transactions} />} />
             <Route path="/transactions" element={<Transactions transactions={transactions} deleteTransaction={(id, deleteSeries) => deleteTransaction(id, deleteSeries)} />} />
             <Route path="/profile" element={<Profile session={session as Session} />} />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { TransactionCategory } from '../types';
 import { CATEGORY_ICONS, CATEGORY_COLORS } from '../constants';
 import { getCustomCategoryEmoji } from '../utils';
@@ -8,6 +8,7 @@ interface CategoryPickerProps {
   onChange: (category: string) => void;
   customCategories: string[];
   onAddCustomCategory: (newCategory: string, emoji: string) => string[];
+  onRemoveCustomCategory: (category: string) => string[];
 }
 
 const CATEGORY_EMOJIS = ['🏷️', '🏠', '🚗', '⛽', '💊', '🐾', '🍔', '🛒', '🎓', '🎮', '💡', '💰'];
@@ -17,11 +18,15 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
   onChange,
   customCategories,
   onAddCustomCategory,
+  onRemoveCustomCategory,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [newCatName, setNewCatName] = useState('');
   const [newCatEmoji, setNewCatEmoji] = useState(CATEGORY_EMOJIS[0]);
+  const [categoryToRemove, setCategoryToRemove] = useState<string | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didLongPress = useRef(false);
 
   const defaultCategories = Object.values(TransactionCategory);
   
@@ -47,6 +52,26 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
     setNewCatEmoji(CATEGORY_EMOJIS[0]);
     setIsAdding(false);
     setIsOpen(false);
+  };
+
+  const clearLongPress = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    longPressTimer.current = null;
+  };
+
+  const startLongPress = (category: string) => {
+    didLongPress.current = false;
+    longPressTimer.current = setTimeout(() => {
+      didLongPress.current = true;
+      setCategoryToRemove(category);
+    }, 600);
+  };
+
+  const confirmRemoveCategory = () => {
+    if (!categoryToRemove) return;
+    onRemoveCustomCategory(categoryToRemove);
+    if (value === categoryToRemove) onChange(TransactionCategory.OTHERS);
+    setCategoryToRemove(null);
   };
 
   // Ícone e cor da categoria selecionada
@@ -170,7 +195,20 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
                         <button
                           key={catName}
                           type="button"
-                          onClick={() => handleSelect(catName)}
+                          onClick={() => {
+                            if (didLongPress.current) {
+                              didLongPress.current = false;
+                              return;
+                            }
+                            handleSelect(catName);
+                          }}
+                          onTouchStart={() => startLongPress(catName)}
+                          onTouchEnd={clearLongPress}
+                          onTouchCancel={clearLongPress}
+                          onContextMenu={event => {
+                            event.preventDefault();
+                            setCategoryToRemove(catName);
+                          }}
                           className={`flex items-center gap-3 p-3 rounded-2xl border transition-all text-left ${
                             isSelected
                               ? 'border-primary bg-primary/10 shadow-sm'
@@ -229,6 +267,24 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
                   })}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {categoryToRemove && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-t-[32px] sm:rounded-3xl p-6 shadow-2xl">
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto mb-4">
+              <span className="material-symbols-outlined text-2xl">delete</span>
+            </div>
+            <h3 className="text-lg font-bold text-center dark:text-white">Excluir categoria?</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 text-center mt-2 leading-relaxed">
+              “{categoryToRemove}” deixará de estar disponível para novos lançamentos. Os lançamentos antigos não serão alterados.
+            </p>
+            <div className="flex gap-3 mt-6">
+              <button type="button" onClick={() => setCategoryToRemove(null)} className="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-200 font-bold text-sm">Cancelar</button>
+              <button type="button" onClick={confirmRemoveCategory} className="flex-1 py-3 rounded-xl bg-rose-500 text-white font-bold text-sm">Excluir</button>
             </div>
           </div>
         </div>

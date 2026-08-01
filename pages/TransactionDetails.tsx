@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Transaction, TransactionType, TransactionCategory } from '../types';
-import { formatDateToYYYYMMDD, getCustomCategories, addCustomCategory, parseCurrencyInput } from '../utils';
+import { formatDateToYYYYMMDD, getCustomCategories, addCustomCategory, parseCurrencyInput, removeCustomCategory } from '../utils';
 import { CategoryPicker } from '../components/CategoryPicker';
 
 interface TransactionDetailsProps {
@@ -55,6 +55,12 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({ onSave, transac
 
   const handleAddCustomCategory = (newCat: string, emoji: string) => {
     const updated = addCustomCategory(newCat, emoji);
+    setCustomCategoriesList(updated);
+    return updated;
+  };
+
+  const handleRemoveCustomCategory = (categoryName: string) => {
+    const updated = removeCustomCategory(categoryName);
     setCustomCategoriesList(updated);
     return updated;
   };
@@ -163,6 +169,7 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({ onSave, transac
               onChange={setCat}
               customCategories={customCategoriesList}
               onAddCustomCategory={handleAddCustomCategory}
+              onRemoveCustomCategory={handleRemoveCustomCategory}
             />
           </div>
         </div>

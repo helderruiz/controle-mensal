@@ -132,3 +132,20 @@ export const addCustomCategory = (newCategory: string, emoji = '🏷️'): strin
   
   return current;
 };
+
+/** Remove uma categoria personalizada, sem alterar lançamentos já registrados. */
+export const removeCustomCategory = (category: string): string[] => {
+  const updated = getCustomCategories().filter(item => item !== category);
+  localStorage.setItem(CUSTOM_CATEGORIES_KEY, JSON.stringify(updated));
+
+  try {
+    const savedEmojis = localStorage.getItem(CUSTOM_CATEGORY_EMOJIS_KEY);
+    const emojis: Record<string, string> = savedEmojis ? JSON.parse(savedEmojis) : {};
+    delete emojis[category];
+    localStorage.setItem(CUSTOM_CATEGORY_EMOJIS_KEY, JSON.stringify(emojis));
+  } catch (e) {
+    // A remoção da lista continua válida mesmo se o mapa de emojis estiver inválido.
+  }
+
+  return updated;
+};

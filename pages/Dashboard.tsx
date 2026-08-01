@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Transaction, TransactionType, TransactionCategory } from '../types';
-import { filterByMonth, formatBRL, formatDateToYYYYMMDD, parseDateSafe, getCustomCategories, addCustomCategory, parseCurrencyInput } from '../utils';
+import { Transaction } from '../types';
+import { filterByMonth, formatBRL, formatDateToYYYYMMDD, parseDateSafe } from '../utils';
 import SummaryCard from '../components/SummaryCard';
 import TransactionItem from '../components/TransactionItem';
-import { CategoryPicker } from '../components/CategoryPicker';
 
 interface DashboardProps {
   transactions: Transaction[];
-  addTransaction: (t: Omit<Transaction, 'id'>) => void;
   deleteTransaction: (id: string, deleteSeries?: boolean) => void;
 }
 
@@ -17,7 +15,7 @@ const months = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
 
-const Dashboard: React.FC<DashboardProps> = ({ transactions, addTransaction, deleteTransaction }) => {
+const Dashboard: React.FC<DashboardProps> = ({ transactions, deleteTransaction }) => {
   const navigate = useNavigate();
   const today = new Date();
   
@@ -26,29 +24,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, addTransaction, del
     return saved ? parseDateSafe(saved) : new Date();
   });
 
-  const [quickDate, setQuickDate] = useState<string>(() => {
-    return formatDateToYYYYMMDD(currentDate);
-  });
-
-  const [desc, setDesc] = useState('');
-  const [val, setVal] = useState('');
-  const [type, setType] = useState<TransactionType>(TransactionType.EXIT);
-  const [category, setCategory] = useState<string>(TransactionCategory.FOOD);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
-
-  // Lista combinada de categorias (padrão + customizadas do localStorage)
-  const [customCategories, setCustomCategories] = useState<string[]>(() => getCustomCategories());
-
-  const handleAddCustomCategory = (newCat: string, emoji: string) => {
-    const updated = addCustomCategory(newCat, emoji);
-    setCustomCategories(updated);
-    return updated;
-  };
-
-  // Recarregar categorias caso o usuário navegue ou mude algo
-  useEffect(() => {
-    setCustomCategories(getCustomCategories());
-  }, []);
 
   // Atualiza quickDate e sessionStorage sempre que o mês ativo muda
   useEffect(() => {
@@ -60,7 +36,6 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, addTransaction, del
       ? formatDateToYYYYMMDD(today)
       : formatDateToYYYYMMDD(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1));
     
-    setQuickDate(newQuickDate);
     sessionStorage.setItem('activeMonthDate', newQuickDate);
   }, [currentDate]);
 
@@ -86,21 +61,6 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, addTransaction, del
     .reduce((acc, curr) => acc + curr.amount, 0);
 
   const balance = entries - exits;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const amount = parseCurrencyInput(val);
-    if (!desc || amount === null || amount <= 0) return;
-    addTransaction({
-      description: desc,
-      amount,
-      date: quickDate,
-      type,
-      category: category || TransactionCategory.OTHERS
-    });
-    setDesc('');
-    setVal('');
-  };
 
   const currentMonthTransactions = filteredTransactions;
 
@@ -152,83 +112,6 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, addTransaction, del
           <SummaryCard label="Saídas" value={exits} color="text-rose-600 dark:text-rose-400" icon="trending_down" />
         </div>
       </div>
-
-      <section className="mt-8 px-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-2">
-            <span className="material-symbols-outlined text-primary text-xl font-bold">add_circle</span>
-            <h2 className="text-lg font-bold">Rápido Lançamento</h2>
-          </div>
-          <button 
-            onClick={() => navigate(`/transaction/new?date=${quickDate}`)}
-            className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
-          >
-            Lançamento Completo
-            <span className="material-symbols-outlined text-sm">open_in_new</span>
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4 bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
-          <div>
-            <input
-              value={desc}
-              onChange={e => setDesc(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-primary text-sm p-3 placeholder:text-slate-400 dark:placeholder:text-slate-600 dark:text-white"
-              placeholder="O que você gastou ou recebeu?"
-              type="text"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">R$</span>
-              <input
-                value={val}
-                onChange={e => setVal(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-primary text-xs p-3.5 pl-8 dark:text-white font-bold"
-                placeholder="0,00"
-                type="text"
-                inputMode="decimal"
-                aria-label="Valor do lançamento"
-              />
-            </div>
-
-            <select
-              value={type}
-              onChange={e => setType(e.target.value as TransactionType)}
-              className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-primary text-xs p-3.5 dark:text-white font-bold"
-            >
-              <option value={TransactionType.EXIT}>Saída</option>
-              <option value={TransactionType.ENTRY}>Entrada</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Categoria</label>
-            <CategoryPicker
-              value={category}
-              onChange={setCategory}
-              customCategories={customCategories}
-              onAddCustomCategory={handleAddCustomCategory}
-            />
-          </div>
-
-          <div className="flex items-center gap-2 pt-1">
-            <span className="text-xs font-bold text-slate-400 dark:text-slate-500 whitespace-nowrap">Data do lançamento:</span>
-            <input
-              type="date"
-              value={quickDate}
-              onChange={e => setQuickDate(e.target.value)}
-              className="flex-1 bg-slate-50 dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-primary text-xs p-2.5 dark:text-white font-medium"
-            />
-          </div>
-
-          <button type="submit" className="w-full ios-gradient text-white font-bold py-3.5 rounded-xl shadow-lg active:scale-[0.98] transition-transform flex items-center justify-center gap-2">
-            <span className="material-symbols-outlined text-lg">check</span>
-            REGISTRAR LANÇAMENTO
-          </button>
-        </form>
-      </section>
 
       <section className="mt-8 px-6">
         <div className="flex items-center justify-between mb-4">
