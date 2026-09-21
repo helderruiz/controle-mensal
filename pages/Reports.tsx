@@ -5,8 +5,8 @@ import {
   BarChart, Bar, XAxis, Tooltip,
 } from 'recharts';
 import { Transaction, TransactionType } from '../types';
-import { COLORS } from '../constants';
-import { formatBRL, filterByMonth, parseDateSafe } from '../utils';
+import { COLORS, CATEGORY_ICONS, CATEGORY_COLORS } from '../constants';
+import { formatBRL, filterByMonth, parseDateSafe, getCustomCategoryEmoji } from '../utils';
 
 interface ReportsProps {
   transactions: Transaction[];
@@ -26,6 +26,7 @@ type ViewMode = 'monthly' | 'annual';
 const Reports: React.FC<ReportsProps> = ({ transactions }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('monthly');
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const handlePrevMonth = () =>
     setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
@@ -48,15 +49,19 @@ const Reports: React.FC<ReportsProps> = ({ transactions }) => {
     const balance = totalEntries - totalExits;
 
     // Distribuição por categoria (saídas)
-    const categoryMap: Record<string, number> = {};
+    const categoryMap: Record<string, { value: number; count: number }> = {};
     exits.forEach(t => {
-      categoryMap[t.category] = (categoryMap[t.category] || 0) + t.amount;
+      if (!categoryMap[t.category]) {
+        categoryMap[t.category] = { value: 0, count: 0 };
+      }
+      categoryMap[t.category].value += t.amount;
+      categoryMap[t.category].count += 1;
     });
     const categoryData = Object.entries(categoryMap)
-      .map(([name, value]) => ({ name, value }))
+      .map(([name, data]) => ({ name, value: data.value, count: data.count }))
       .sort((a, b) => b.value - a.value);
 
-    return { totalExits, totalEntries, balance, categoryData };
+    return { totalExits, totalEntries, balance, categoryData, exits };
   }, [transactions, currentDate]);
 
   // Fluxo exibido na visão mensal: seis meses até o período selecionado.
@@ -100,18 +105,23 @@ const Reports: React.FC<ReportsProps> = ({ transactions }) => {
       return date.getFullYear() === currentDate.getFullYear();
     });
     const totalEntries = yearTotal.filter(t => t.type === TransactionType.ENTRY).reduce((a, t) => a + t.amount, 0);
-    const totalExits = yearTotal.filter(t => t.type === TransactionType.EXIT).reduce((a, t) => a + t.amount, 0);
+    const exits = yearTotal.filter(t => t.type === TransactionType.EXIT);
+    const totalExits = exits.reduce((a, t) => a + t.amount, 0);
 
     // Distribuição por categoria anual (saídas)
-    const categoryMap: Record<string, number> = {};
-    yearTotal.filter(t => t.type === TransactionType.EXIT).forEach(t => {
-      categoryMap[t.category] = (categoryMap[t.category] || 0) + t.amount;
+    const categoryMap: Record<string, { value: number; count: number }> = {};
+    exits.forEach(t => {
+      if (!categoryMap[t.category]) {
+        categoryMap[t.category] = { value: 0, count: 0 };
+      }
+      categoryMap[t.category].value += t.amount;
+      categoryMap[t.category].count += 1;
     });
     const categoryData = Object.entries(categoryMap)
-      .map(([name, value]) => ({ name, value }))
+      .map(([name, data]) => ({ name, value: data.value, count: data.count }))
       .sort((a, b) => b.value - a.value);
 
-    return { months, totalEntries, totalExits, balance: totalEntries - totalExits, categoryData };
+    return { months, totalEntries, totalExits, balance: totalEntries - totalExits, categoryData, exits };
   }, [transactions, currentDate]);
 
   const isMonthly = viewMode === 'monthly';
@@ -121,6 +131,26 @@ const Reports: React.FC<ReportsProps> = ({ transactions }) => {
   const balance = isMonthly ? monthlyData.balance : annualData.balance;
   const cashFlowData = isMonthly ? recentCashFlow : annualData.months;
   const cashFlowPeriodLabel = isMonthly ? 'Últimos 6 meses' : `Ano de ${currentDate.getFullYear()}`;
+  const periodLabel = isMonthly
+    ? `${MONTH_NAMES[currentDate.getMonth()]} de ${currentDate.getFullYear()}`
+    : `Ano de ${currentDate.getFullYear()}`;
+
+  // Lista de saídas do período selecionado
+  const currentPeriodExits = isMonthly ? monthlyData.exits : annualData.exits;
+
+  // Transações da categoria selecionada para o modal de extrato
+  const selectedCategoryTransactions = useMemo(() => {
+    if (!selectedCategory) return [];
+    return currentPeriodExits
+      .filter(t => t.category === selectedCategory)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [selectedCategory, currentPeriodExits]);
+
+  const selectedCategoryTotal = useMemo(() => {
+    return selectedCategoryTransactions.reduce((acc, t) => acc + t.amount, 0);
+  }, [selectedCategoryTransactions]);
+
+  const selectedCategoryEmoji = selectedCategory ? getCustomCategoryEmoji(selectedCategory) : undefined;
 
   return (
     <div className="pb-24">
@@ -188,9 +218,15 @@ const Reports: React.FC<ReportsProps> = ({ transactions }) => {
 
         {/* Gráfico de Pizza — distribuição por categoria */}
         <section className="text-center">
-          <h2 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-6 uppercase tracking-wider">
-            Distribuição de Saídas
-          </h2>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              Distribuição de Saídas
+            </h2>
+            <span className="text-[10px] text-primary dark:text-blue-400 font-medium">
+              Toque para ver extrato
+            </span>
+          </div>
+
           {categoryData.length > 0 ? (
             <>
               <div className="h-56 w-full relative">
@@ -204,6 +240,8 @@ const Reports: React.FC<ReportsProps> = ({ transactions }) => {
                       outerRadius={80}
                       paddingAngle={3}
                       dataKey="value"
+                      className="cursor-pointer"
+                      onClick={(entry) => setSelectedCategory(entry.name)}
                     >
                       {categoryData.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
@@ -221,18 +259,54 @@ const Reports: React.FC<ReportsProps> = ({ transactions }) => {
                 </div>
               </div>
 
-              {/* Legenda por categoria */}
-              <div className="space-y-2 mt-6">
+              {/* Legenda interativa por categoria */}
+              <div className="space-y-2.5 mt-6">
                 {categoryData.map((cat, idx) => {
                   const pct = totalExits > 0 ? ((cat.value / totalExits) * 100).toFixed(1) : '0';
                   const color = CHART_COLORS[idx % CHART_COLORS.length];
+                  const emoji = getCustomCategoryEmoji(cat.name);
                   return (
-                    <div key={cat.name} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-white/5 rounded-xl">
-                      <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: color }}></div>
-                      <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 flex-1 text-left">{cat.name}</p>
-                      <p className="text-[10px] text-slate-400 font-medium">{pct}%</p>
-                      <p className="text-xs font-bold text-slate-700 dark:text-white">R$ {formatBRL(cat.value)}</p>
-                    </div>
+                    <button
+                      key={cat.name}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat.name)}
+                      className="w-full flex items-center gap-3 p-3.5 bg-slate-50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 active:scale-[0.99] rounded-2xl transition-all border border-transparent hover:border-slate-200 dark:hover:border-white/10 text-left group"
+                    >
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${color}20` }}>
+                        {emoji ? (
+                          <span className="text-lg">{emoji}</span>
+                        ) : (
+                          <span className="material-symbols-outlined text-lg" style={{ color }}>
+                            {CATEGORY_ICONS[cat.name] || 'category'}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate group-hover:text-primary transition-colors">
+                            {cat.name}
+                          </p>
+                          <span className="text-[9px] font-semibold text-slate-400 bg-slate-200/60 dark:bg-white/10 px-1.5 py-0.5 rounded-full shrink-0">
+                            {cat.count} {cat.count === 1 ? 'item' : 'itens'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <div className="w-12 bg-slate-200 dark:bg-white/10 rounded-full h-1 overflow-hidden shrink-0">
+                            <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }}></div>
+                          </div>
+                          <p className="text-[10px] text-slate-400 font-medium">{pct}% do total</p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0 flex items-center gap-2">
+                        <div>
+                          <p className="text-xs font-black text-slate-800 dark:text-white">R$ {formatBRL(cat.value)}</p>
+                          <p className="text-[9px] text-primary dark:text-blue-400 font-semibold mt-0.5">ver extrato</p>
+                        </div>
+                        <span className="material-symbols-outlined text-slate-300 dark:text-slate-600 group-hover:text-primary group-hover:translate-x-0.5 transition-all text-base">
+                          chevron_right
+                        </span>
+                      </div>
+                    </button>
                   );
                 })}
               </div>
@@ -286,33 +360,154 @@ const Reports: React.FC<ReportsProps> = ({ transactions }) => {
             <h2 className="text-lg font-bold mb-4">
               Maior Categoria {isMonthly ? 'do Mês' : 'do Ano'}
             </h2>
-            <div
-              className="rounded-2xl p-4 flex items-center gap-4"
-              style={{ backgroundColor: `${CHART_COLORS[0]}20` }}
+            <button
+              type="button"
+              onClick={() => setSelectedCategory(categoryData[0].name)}
+              className="w-full text-left rounded-2xl p-4 flex items-center gap-4 transition-transform active:scale-[0.99]"
+              style={{ backgroundColor: `${CHART_COLORS[0]}15` }}
             >
               <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center"
+                className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
                 style={{ backgroundColor: `${CHART_COLORS[0]}30` }}
               >
                 <span className="material-symbols-outlined text-xl" style={{ color: CHART_COLORS[0] }}>
                   trending_down
                 </span>
               </div>
-              <div className="flex-1">
-                <p className="font-bold text-sm text-slate-700 dark:text-slate-200">{categoryData[0].name}</p>
-                <p className="text-[10px] text-slate-400">
-                  {totalExits > 0 ? ((categoryData[0].value / totalExits) * 100).toFixed(1) : 0}% do total de saídas
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-sm text-slate-700 dark:text-slate-200 truncate">{categoryData[0].name}</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  {totalExits > 0 ? ((categoryData[0].value / totalExits) * 100).toFixed(1) : 0}% do total • {categoryData[0].count} {categoryData[0].count === 1 ? 'despesa' : 'despesas'}
                 </p>
               </div>
-              <p className="font-black text-sm" style={{ color: CHART_COLORS[0] }}>
-                R$ {formatBRL(categoryData[0].value)}
-              </p>
-            </div>
+              <div className="text-right shrink-0">
+                <p className="font-black text-sm" style={{ color: CHART_COLORS[0] }}>
+                  R$ {formatBRL(categoryData[0].value)}
+                </p>
+                <span className="text-[9px] font-semibold text-primary dark:text-blue-400">ver detalhes →</span>
+              </div>
+            </button>
           </section>
         )}
       </main>
+
+      {/* Modal / Extrato Detalhado da Categoria Selecionada */}
+      {selectedCategory && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
+          onClick={() => setSelectedCategory(null)}
+        >
+          <div 
+            className="bg-white dark:bg-slate-900 w-full max-w-lg max-h-[85vh] rounded-t-[32px] sm:rounded-3xl p-6 shadow-2xl flex flex-col animate-in slide-in-from-bottom-6 duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Barra de arraste no mobile */}
+            <div className="w-12 h-1.5 bg-slate-200 dark:bg-white/10 rounded-full mx-auto mb-4 sm:hidden"></div>
+
+            {/* Cabeçalho do Extrato */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-white/10">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${CATEGORY_COLORS[selectedCategory] || 'bg-blue-500/20 text-blue-500'}`}>
+                  {selectedCategoryEmoji ? (
+                    <span className="text-2xl">{selectedCategoryEmoji}</span>
+                  ) : (
+                    <span className="material-symbols-outlined text-2xl">
+                      {CATEGORY_ICONS[selectedCategory] || 'receipt'}
+                    </span>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-white truncate">
+                    {selectedCategory}
+                  </h3>
+                  <p className="text-xs text-slate-400 font-medium">
+                    Extrato • {periodLabel}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedCategory(null)}
+                className="w-9 h-9 rounded-full bg-slate-100 dark:bg-white/10 flex items-center justify-center text-slate-500 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/20 transition-colors shrink-0 ml-2"
+                title="Fechar"
+              >
+                <span className="material-symbols-outlined text-lg">close</span>
+              </button>
+            </div>
+
+            {/* Resumo do Valor Total */}
+            <div className="my-4 p-4 rounded-2xl bg-rose-500/10 dark:bg-rose-500/15 border border-rose-500/20 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">Total Gasto na Categoria</p>
+                <p className="text-xl font-black text-rose-600 dark:text-rose-400 mt-0.5">
+                  R$ {formatBRL(selectedCategoryTotal)}
+                </p>
+              </div>
+              <div className="text-right">
+                <span className="inline-block text-xs font-bold px-2.5 py-1 rounded-full bg-rose-500/20 text-rose-700 dark:text-rose-300">
+                  {selectedCategoryTransactions.length} {selectedCategoryTransactions.length === 1 ? 'lançamento' : 'lançamentos'}
+                </span>
+              </div>
+            </div>
+
+            {/* Lista de Gastos / Extrato */}
+            <div className="overflow-y-auto flex-1 pr-1 space-y-2.5 my-2 divide-y divide-slate-100 dark:divide-white/5">
+              {selectedCategoryTransactions.length === 0 ? (
+                <div className="py-12 text-center text-slate-400 text-sm">
+                  Nenhum gasto encontrado para esta categoria no período.
+                </div>
+              ) : (
+                selectedCategoryTransactions.map((item) => {
+                  const isInstallment = !!(item.installmentGroupId || (item.installmentType === 'INSTALLMENT' && item.installmentsCount && item.installmentsCount > 1));
+                  // Formatando data DD/MM/YYYY
+                  const d = parseDateSafe(item.date);
+                  const formattedDate = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+
+                  return (
+                    <div key={item.id} className="pt-2.5 first:pt-0 flex items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">
+                          {item.description}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <span className="text-[10px] text-slate-400 font-medium">
+                            {formattedDate}
+                          </span>
+                          {isInstallment && (
+                            <span className="text-[9px] font-bold bg-blue-500/10 text-blue-500 px-1.5 py-0.2 rounded-full">
+                              PARCELADO
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-xs font-black text-rose-500">
+                          - R$ {formatBRL(item.amount)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Rodapé do Modal */}
+            <div className="pt-4 border-t border-slate-100 dark:border-white/10 mt-auto">
+              <button
+                type="button"
+                onClick={() => setSelectedCategory(null)}
+                className="w-full py-3 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-sm transition-colors"
+              >
+                Fechar Extrato
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default Reports;
+
