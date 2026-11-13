@@ -174,5 +174,5 @@ drop policy if exists "Settings all para autenticados" on public.system_settings
 create policy "Settings all para autenticados" on public.system_settings for all to authenticated using (true);
 
 insert into public.system_settings (key, value)
-values ('subscription_config', '{"block_active": false, "price": 4.99, "stripe_link": "", "whatsapp": ""}'::jsonb)
+values ('subscription_config', '{"block_active": false, "price": 4.99, "stripe_link": "https://buy.stripe.com/6oUfZh0fccHVbCCgvt4Rq00", "whatsapp": ""}'::jsonb)
 on conflict (key) do nothing;

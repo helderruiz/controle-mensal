@@ -11,7 +11,7 @@ export interface SubscriptionConfig {
 
 const DEFAULT_CONFIG: SubscriptionConfig = {
   blockActive: false, // Inicia DESATIVADO por padrão para segurança máxima dos 118 usuários
-  stripePaymentLink: '',
+  stripePaymentLink: 'https://buy.stripe.com/6oUfZh0fccHVbCCgvt4Rq00',
   whatsappSupport: '5511999999999',
   monthlyPrice: 4.99,
 };

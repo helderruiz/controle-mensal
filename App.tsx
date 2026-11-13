@@ -39,7 +39,7 @@ const App: React.FC = () => {
   const [mustBeBlocked, setMustBeBlocked] = useState(false);
   const [subConfig, setSubConfig] = useState<SubscriptionConfig>({
     blockActive: false,
-    stripePaymentLink: '',
+    stripePaymentLink: 'https://buy.stripe.com/6oUfZh0fccHVbCCgvt4Rq00',
     whatsappSupport: '5511999999999',
     monthlyPrice: 4.99,
   });
