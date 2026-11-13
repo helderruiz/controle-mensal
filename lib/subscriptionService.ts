@@ -92,7 +92,30 @@ export async function checkUserMustBeBlocked(user: SupabaseUser | null | undefin
     return false;
   }
 
-  // 3. PRIORIDADE MÁXIMA: Checa se o usuário específico está com status "Bloqueado" no banco
+  // 3. PRIORIDADE MÁXIMA: Checa via RPC (SECURITY DEFINER = bypassa RLS sempre)
+  try {
+    const { data: rpcUsers, error: rpcErr } = await supabase.rpc('get_admin_users');
+    if (!rpcErr && Array.isArray(rpcUsers)) {
+      const myProfile = rpcUsers.find((u: any) => u.id === user.id);
+      if (myProfile) {
+        // Se foi bloqueado manualmente no painel admin, BLOQUEIA NA HORA!
+        if (myProfile.status === 'Bloqueado') {
+          return true;
+        }
+        // Se possui plano mensal pago e ainda dentro da validade, LIBERA!
+        if (myProfile.plan === 'MENSAL_4_99' && myProfile.plan_expires_at) {
+          const expiresAt = new Date(myProfile.plan_expires_at);
+          if (expiresAt > new Date()) {
+            return false;
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Erro ao verificar via RPC:', err);
+  }
+
+  // 4. Fallback: Tenta query direta na tabela profiles
   try {
     const { data: profile } = await supabase
       .from('profiles')
@@ -118,7 +141,7 @@ export async function checkUserMustBeBlocked(user: SupabaseUser | null | undefin
     console.warn('Erro ao verificar status individual do profile:', err);
   }
 
-  // 4. Checa na tabela subscriptions se possui assinatura ativa
+  // 5. Checa na tabela subscriptions se possui assinatura ativa
   try {
     const { data: subData } = await supabase
       .from('subscriptions')
@@ -141,7 +164,7 @@ export async function checkUserMustBeBlocked(user: SupabaseUser | null | undefin
     console.warn('Erro ao verificar subscriptions:', err);
   }
 
-  // 5. REGRA DO DIA 01: Obtém a configuração do sistema
+  // 6. REGRA DO DIA 01: Obtém a configuração do sistema
   const config = await getSubscriptionConfig();
 
   // Se a chave geral de bloqueio do dia 01 estiver desligada, permite o acesso dos não-bloqueados
