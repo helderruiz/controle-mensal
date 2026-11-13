@@ -143,7 +143,7 @@ create table if not exists public.subscriptions (
   plan_name text default 'Mensal R$ 4,99',
   amount numeric(10,2) default 4.99,
   status text default 'ativa',
-  gateway text default 'mercado_pago',
+  gateway text default 'stripe',
   gateway_subscription_id text,
   current_period_end timestamptz,
   created_at timestamptz default now(),
@@ -157,3 +157,22 @@ create policy "Assinaturas select livre para autenticados" on public.subscriptio
 
 drop policy if exists "Assinaturas all para autenticados" on public.subscriptions;
 create policy "Assinaturas all para autenticados" on public.subscriptions for all to authenticated using (true);
+
+-- 7. TABELA DE CONFIGURAÇÕES DO SISTEMA (Bloqueio Dia 01 & Stripe)
+create table if not exists public.system_settings (
+  key text primary key,
+  value jsonb,
+  updated_at timestamptz default now()
+);
+
+alter table public.system_settings enable row level security;
+
+drop policy if exists "Settings select livre para autenticados" on public.system_settings;
+create policy "Settings select livre para autenticados" on public.system_settings for select to authenticated using (true);
+
+drop policy if exists "Settings all para autenticados" on public.system_settings;
+create policy "Settings all para autenticados" on public.system_settings for all to authenticated using (true);
+
+insert into public.system_settings (key, value)
+values ('subscription_config', '{"block_active": false, "price": 4.99, "stripe_link": "", "whatsapp": ""}'::jsonb)
+on conflict (key) do nothing;

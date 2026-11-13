@@ -5,6 +5,7 @@ import {
   deleteUser,
   AdminUser,
 } from '../../lib/adminService';
+import { activateUserSubscription } from '../../lib/subscriptionService';
 
 const AdminUsers: React.FC = () => {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -109,6 +110,13 @@ create policy "Subs select livre" on public.subscriptions for all to authenticat
     }
 
     setActionUser(null);
+    loadUsers();
+  };
+
+  const handleGrantSubscription = async (user: AdminUser) => {
+    const ok = window.confirm(`Deseja ativar o Plano Mensal R$ 4,99 por 30 dias para ${user.name} (${user.email})?`);
+    if (!ok) return;
+    await activateUserSubscription(user.id, user.email, user.name, 30);
     loadUsers();
   };
 
@@ -309,6 +317,17 @@ create policy "Subs select livre" on public.subscriptions for all to authenticat
                     {/* AÇÕES */}
                     <td className="py-4 px-6 text-right">
                       <div className="inline-flex items-center gap-2">
+                        {/* Ativar Plano R$ 4,99 */}
+                        <button
+                          onClick={() => handleGrantSubscription(user)}
+                          className="w-8 h-8 rounded-lg flex items-center justify-center text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition"
+                          title="Liberar / Ativar Plano Mensal R$ 4,99"
+                        >
+                          <span className="material-symbols-outlined text-lg">
+                            credit_card
+                          </span>
+                        </button>
+
                         {/* Ativar/Desbloquear */}
                         <button
                           onClick={() => setActionUser({ user, action: 'toggle' })}

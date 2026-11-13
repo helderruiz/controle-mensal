@@ -17,7 +17,14 @@ import AdminUsers from './pages/admin/AdminUsers';
 import AdminSubscriptions from './pages/admin/AdminSubscriptions';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminGuard from './pages/admin/AdminGuard';
+import SubscriptionBlockModal from './components/SubscriptionBlockModal';
 import { recordAccessLog } from './lib/accessLogger';
+import {
+  checkUserMustBeBlocked,
+  getSubscriptionConfig,
+  activateUserSubscription,
+  SubscriptionConfig,
+} from './lib/subscriptionService';
 import { Transaction, TransactionType, TransactionCategory } from './types';
 import { getInstallmentGroupKey } from './utils';
 import logo from './img/icone controle financeiro.png';
@@ -27,6 +34,29 @@ const INITIAL_TRANSACTIONS: Transaction[] = [];
 const App: React.FC = () => {
   // null = ainda carregando, Session = logado, false = não logado
   const [session, setSession] = useState<Session | null | false>(null);
+
+  // Controle de Bloqueio por Assinatura (Dia 01)
+  const [mustBeBlocked, setMustBeBlocked] = useState(false);
+  const [subConfig, setSubConfig] = useState<SubscriptionConfig>({
+    blockActive: false,
+    stripePaymentLink: '',
+    whatsappSupport: '5511999999999',
+    monthlyPrice: 4.99,
+  });
+
+  const verifySubscriptionStatus = async (user?: any) => {
+    const targetUser = user || (session ? (session as Session).user : null);
+    if (!targetUser) {
+      setMustBeBlocked(false);
+      return;
+    }
+    const [cfg, blocked] = await Promise.all([
+      getSubscriptionConfig(),
+      checkUserMustBeBlocked(targetUser),
+    ]);
+    setSubConfig(cfg);
+    setMustBeBlocked(blocked);
+  };
 
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
     const saved = localStorage.getItem('transactions');
@@ -39,6 +69,7 @@ const App: React.FC = () => {
       setSession(session ?? false);
       if (session?.user) {
         recordAccessLog(session.user);
+        verifySubscriptionStatus(session.user);
       }
     });
 
@@ -47,11 +78,29 @@ const App: React.FC = () => {
       setSession(session ?? false);
       if (session?.user) {
         recordAccessLog(session.user);
+        verifySubscriptionStatus(session.user);
+      } else {
+        setMustBeBlocked(false);
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Detecta retorno de pagamento do Stripe (?payment=success)
+  useEffect(() => {
+    if (window.location.href.includes('payment=success') && session && session.user) {
+      activateUserSubscription(
+        session.user.id,
+        session.user.email || '',
+        session.user.user_metadata?.full_name || 'Usuário',
+        30
+      ).then(() => {
+        setMustBeBlocked(false);
+        verifySubscriptionStatus(session.user);
+      });
+    }
+  }, [session]);
 
   useEffect(() => {
     localStorage.setItem('transactions', JSON.stringify(transactions));
@@ -158,6 +207,15 @@ const App: React.FC = () => {
         </Routes>
       </HashRouter>
       <IOSInstallBanner />
+
+      {/* Pop-up de Bloqueio Seguro de Assinatura (Dia 01) */}
+      {mustBeBlocked && session && session.user && (
+        <SubscriptionBlockModal
+          user={session.user}
+          config={subConfig}
+          onRefreshStatus={() => verifySubscriptionStatus(session.user)}
+        />
+      )}
     </>
   );
 };
