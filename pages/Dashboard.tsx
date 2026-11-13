@@ -25,6 +25,8 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, deleteTransaction }
   });
 
   const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [exitSortDescending, setExitSortDescending] = useState(true);
+  const [showOnlyExits, setShowOnlyExits] = useState(false);
 
   // Atualiza quickDate e sessionStorage sempre que o mês ativo muda
   useEffect(() => {
@@ -62,7 +64,11 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, deleteTransaction }
 
   const balance = entries - exits;
 
-  const currentMonthTransactions = filteredTransactions;
+  const currentMonthTransactions = showOnlyExits
+    ? filteredTransactions
+        .filter(t => t.type === TransactionType.EXIT)
+        .sort((a, b) => exitSortDescending ? b.amount - a.amount : a.amount - b.amount)
+    : filteredTransactions;
 
   // Gerar anos para o modal de seleção (ano atual +/- 3 anos)
   const currentYear = currentDate.getFullYear();
@@ -119,6 +125,29 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, deleteTransaction }
             <span className="material-symbols-outlined text-primary text-xl">list_alt</span>
             <h2 className="text-lg font-bold">Transações de {months[currentDate.getMonth()]}</h2>
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (!showOnlyExits) {
+                setShowOnlyExits(true);
+                setExitSortDescending(true);
+              } else if (exitSortDescending) {
+                setExitSortDescending(false);
+              } else {
+                setShowOnlyExits(false);
+                setExitSortDescending(true);
+              }
+            }}
+            aria-label={showOnlyExits
+              ? `Ordenar saídas do ${exitSortDescending ? 'menor para o maior' : 'maior para o menor'} valor`
+              : 'Mostrar saídas do maior para o menor valor'}
+            title={showOnlyExits
+              ? `Saídas: ${exitSortDescending ? 'maior para menor' : 'menor para maior'}`
+              : 'Mostrar maiores saídas'}
+            className={`flex items-center justify-center h-9 w-9 rounded-xl transition-colors ${showOnlyExits ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+          >
+            <span className="material-symbols-outlined">{exitSortDescending ? 'arrow_downward' : 'arrow_upward'}</span>
+          </button>
         </div>
         <div className="max-h-[400px] overflow-y-auto pr-1 scrollbar-hide">
           <div className="space-y-3">
