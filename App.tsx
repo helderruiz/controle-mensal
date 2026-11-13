@@ -98,6 +98,9 @@ const App: React.FC = () => {
       ).then(() => {
         setMustBeBlocked(false);
         verifySubscriptionStatus(session.user);
+        const cleanUrl = window.location.href.replace('payment=success', '').replace(/[?&]$/, '');
+        window.history.replaceState({}, document.title, cleanUrl);
+        alert('🎉 Pagamento confirmado com sucesso! Sua assinatura de R$ 4,99 foi ativada e seu acesso está liberado por 30 dias.');
       });
     }
   }, [session]);
