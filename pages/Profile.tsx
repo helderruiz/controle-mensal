@@ -1,7 +1,9 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { isUserAdmin } from '../lib/adminService';
 
 interface ProfileProps {
   session: Session;
@@ -52,6 +54,27 @@ const Profile: React.FC<ProfileProps> = ({ session }) => {
             </div>
           </div>
         </div>
+
+        {/* Card de Acesso ao Painel Admin (Visível apenas para Helder / Administrador) */}
+        {isUserAdmin(user) && (
+          <div className="bg-[#0c142b] border border-amber-500/30 rounded-3xl overflow-hidden shadow-lg p-5">
+            <Link
+              to="/admin/dashboard"
+              className="w-full flex items-center justify-between p-4 rounded-2xl bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 active:scale-[0.98] transition-all group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                  <span className="material-symbols-outlined font-bold text-amber-400 text-2xl">shield</span>
+                </div>
+                <div>
+                  <span className="text-base font-bold text-white block">Painel Administrativo</span>
+                  <span className="text-xs text-amber-300/80">Gerenciar usuários, métricas e assinaturas</span>
+                </div>
+              </div>
+              <span className="material-symbols-outlined text-amber-400 group-hover:translate-x-1 transition-transform">chevron_right</span>
+            </Link>
+          </div>
+        )}
 
         {/* Botão de logout */}
         <div className="bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-sm border border-slate-100 dark:border-white/5 p-6">

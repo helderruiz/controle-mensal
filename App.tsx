@@ -12,6 +12,12 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Layout from './components/Layout';
 import IOSInstallBanner from './components/IOSInstallBanner';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminSubscriptions from './pages/admin/AdminSubscriptions';
+import AdminLogin from './pages/admin/AdminLogin';
+import AdminGuard from './pages/admin/AdminGuard';
+import { recordAccessLog } from './lib/accessLogger';
 import { Transaction, TransactionType, TransactionCategory } from './types';
 import { getInstallmentGroupKey } from './utils';
 import logo from './img/icone controle financeiro.png';
@@ -31,11 +37,17 @@ const App: React.FC = () => {
     // Obter sessão inicial
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session ?? false);
+      if (session?.user) {
+        recordAccessLog(session.user);
+      }
     });
 
     // Ouvir mudanças de autenticação (login, logout, refresh de token)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session ?? false);
+      if (session?.user) {
+        recordAccessLog(session.user);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -122,6 +134,13 @@ const App: React.FC = () => {
           <Route path="/signup" element={
             isAuthenticated ? <Navigate to="/" replace /> : <Signup />
           } />
+
+          {/* Rotas Administrativas Seguras */}
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="/admin/dashboard" element={<AdminGuard session={session}><AdminDashboard /></AdminGuard>} />
+          <Route path="/admin/users" element={<AdminGuard session={session}><AdminUsers /></AdminGuard>} />
+          <Route path="/admin/subscriptions" element={<AdminGuard session={session}><AdminSubscriptions /></AdminGuard>} />
 
           <Route element={isAuthenticated ? <Layout /> : <Navigate to="/login" replace />}>
             <Route index element={<Dashboard transactions={transactions} deleteTransaction={deleteTransaction} />} />
