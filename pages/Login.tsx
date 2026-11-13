@@ -15,16 +15,43 @@ const Login: React.FC = () => {
     setError('');
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
       password: pass,
     });
 
-    if (error) {
+    if (signInError) {
+      // Se for o e-mail do admin e ainda não estiver criado no Supabase, cria automaticamente
+      if (
+        email.trim().toLowerCase() === 'helder.ruiz.marcelino@gmail.com' &&
+        signInError.message === 'Invalid login credentials'
+      ) {
+        const { error: signUpErr } = await supabase.auth.signUp({
+          email: email.trim(),
+          password: pass,
+          options: {
+            data: { full_name: 'Helder Ruiz Marcelino', role: 'admin' },
+          },
+        });
+
+        if (!signUpErr) {
+          // Tenta entrar com a conta recém-criada
+          const { error: retryError } = await supabase.auth.signInWithPassword({
+            email: email.trim(),
+            password: pass,
+          });
+
+          if (!retryError) {
+            setLoading(false);
+            return;
+          }
+        }
+      }
+
       setError(
-        error.message === 'Invalid login credentials'
-          ? 'E-mail ou senha incorretos.'
-          : error.message
+        signInError.message === 'Invalid login credentials'
+          ? 'E-mail ou senha incorretos. Verifique suas credenciais.'
+          : signInError.message
       );
     }
     // Se sucesso, o onAuthStateChange no App.tsx redireciona automaticamente
@@ -120,6 +147,14 @@ const Login: React.FC = () => {
               Não tem uma conta?
               <Link to="/signup" className="text-primary dark:text-blue-400 font-bold ml-1">Criar conta</Link>
             </p>
+
+            <Link
+              to="/admin/login"
+              className="text-xs text-slate-400 hover:text-primary dark:hover:text-blue-400 flex items-center justify-center gap-1.5 transition"
+            >
+              <span className="material-symbols-outlined text-sm text-amber-500">shield</span>
+              <span>Acesso ao Painel Admin</span>
+            </Link>
           </div>
         </div>
       </div>
