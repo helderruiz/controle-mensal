@@ -37,7 +37,6 @@ export interface SubscriptionItem {
 
 export interface AdminStats {
   totalUsers: number;
-  totalProfessionalsOrClients: number;
   activeSubscriptions: number;
   totalAccesses: number;
   todayAccesses: number;
@@ -50,57 +49,6 @@ export function isUserAdmin(user: SupabaseUser | null | undefined): boolean {
   const roleMatch = user.user_metadata?.role === 'admin' || user.app_metadata?.role === 'admin';
   return emailMatch || roleMatch;
 }
-
-// Dados iniciais / demonstração com os 118 usuários do app
-const FALLBACK_USERS: AdminUser[] = [
-  {
-    id: 'admin-helder',
-    name: 'Helder Ruiz Marcelino',
-    email: 'helder.ruiz.marcelino@gmail.com',
-    role: 'ADMIN',
-    plan: 'GRATUITO',
-    status: 'Ativo',
-    createdAt: '13/11/2026',
-  },
-  {
-    id: 'user-livia',
-    name: 'LIVIA',
-    email: 'studioliviareis@gmail.com',
-    role: 'PROFESSIONAL',
-    plan: '10/11/2026',
-    planSubtitle: 'TRIAL (27D RESTANTES)',
-    status: 'Ativo',
-    createdAt: '10/11/2026',
-  },
-  {
-    id: 'user-juliana',
-    name: 'juliana',
-    email: 'jgama2776@outlook.com',
-    role: 'PROFESSIONAL',
-    plan: '27/09/2026',
-    planSubtitle: 'EXPIRADO HÁ 16D',
-    status: 'Bloqueado',
-    createdAt: '27/09/2026',
-  },
-  {
-    id: 'user-cliente',
-    name: 'Cliente BeautyBook',
-    email: 'cliente@gmail.com',
-    role: 'CLIENT',
-    plan: '26/04/2026',
-    status: 'Ativo',
-    createdAt: '26/04/2026',
-  },
-  {
-    id: 'user-antonio',
-    name: 'Helder Ruiz Marcelino',
-    email: 'helderruiz14@gmail.com',
-    role: 'ADMIN',
-    plan: '23/03/2026',
-    status: 'Ativo',
-    createdAt: '23/03/2026',
-  },
-];
 
 // Helper para formatar data e hora
 function formatTime(dateStr?: string) {
@@ -121,13 +69,26 @@ function formatDate(dateStr?: string) {
 // 1. Obter Estatísticas Gerais do Admin
 export async function getAdminStats(): Promise<{ stats: AdminStats; isLive: boolean }> {
   try {
-    // Tenta buscar perfis reais
-    const { data: profiles, error: pError } = await supabase
-      .from('profiles')
-      .select('id, role, status');
+    let totalUsersCount = 0;
+
+    // Tenta RPC direta do banco que lê de auth.users
+    const { data: rpcUsers, error: rpcError } = await supabase.rpc('get_admin_users');
+    if (!rpcError && Array.isArray(rpcUsers) && rpcUsers.length > 0) {
+      totalUsersCount = rpcUsers.length;
+    }
+
+    // Se a RPC não estiver disponível, tenta buscar tabela profiles
+    if (!totalUsersCount) {
+      const { data: profiles, error: pError } = await supabase
+        .from('profiles')
+        .select('id');
+      if (!pError && profiles && profiles.length > 0) {
+        totalUsersCount = profiles.length;
+      }
+    }
 
     // Tenta buscar logs reais
-    const { data: logs, error: lError } = await supabase
+    const { data: logs } = await supabase
       .from('access_logs')
       .select('id, created_at');
 
@@ -137,14 +98,13 @@ export async function getAdminStats(): Promise<{ stats: AdminStats; isLive: bool
       .select('id, status')
       .eq('status', 'ativa');
 
-    if (!pError && profiles && profiles.length > 0) {
+    if (totalUsersCount > 0) {
       const todayStr = new Date().toISOString().slice(0, 10);
       const todayLogs = (logs || []).filter(l => l.created_at?.startsWith(todayStr));
 
       return {
         stats: {
-          totalUsers: profiles.length,
-          totalProfessionalsOrClients: profiles.filter(p => p.role !== 'ADMIN').length,
+          totalUsers: totalUsersCount,
           activeSubscriptions: subs?.length || 0,
           totalAccesses: (logs?.length || 0) + 600,
           todayAccesses: (todayLogs.length || 0) + 5,
@@ -152,15 +112,14 @@ export async function getAdminStats(): Promise<{ stats: AdminStats; isLive: bool
         isLive: true,
       };
     }
-  } catch {
-    // Fallback gracioso
+  } catch (err) {
+    console.warn('Erro ao obter métricas live:', err);
   }
 
-  // Se o script SQL ainda não foi rodado, exibe os 118 usuários do app e dados iniciais fieis ao screenshot
+  // Fallback seguro caso o SQL ainda não tenha sido rodado no Supabase
   return {
     stats: {
       totalUsers: 118,
-      totalProfessionalsOrClients: 116,
       activeSubscriptions: 0,
       totalAccesses: 603,
       todayAccesses: 5,
@@ -169,14 +128,14 @@ export async function getAdminStats(): Promise<{ stats: AdminStats; isLive: bool
   };
 }
 
-// 2. Obter Atividades em Tempo Real (Screenshot 1)
+// 2. Obter Atividades em Tempo Real (Com suporte a rolagem/scroll)
 export async function getRealtimeActivities(): Promise<AccessActivity[]> {
   try {
     const { data, error } = await supabase
       .from('access_logs')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(15);
+      .limit(100);
 
     if (!error && data && data.length > 0) {
       return data.map(item => ({
@@ -193,15 +152,15 @@ export async function getRealtimeActivities(): Promise<AccessActivity[]> {
     // fallback
   }
 
-  // Atividades padrão como no screenshot
+  // Lista inicial com várias visitas para demonstrar a rolagem
   const now = new Date();
-  return [
+  const sampleActivities: AccessActivity[] = [
     {
       id: 'log-1',
       action: 'Visita ao Sistema',
       userName: 'Helder Ruiz Marcelino',
       userEmail: 'helder.ruiz.marcelino@gmail.com',
-      time: '12:34',
+      time: '12:58',
       date: '13/11/2026',
       timestamp: now.toISOString(),
     },
@@ -210,7 +169,7 @@ export async function getRealtimeActivities(): Promise<AccessActivity[]> {
       action: 'Visita ao Sistema',
       userName: 'Helder Ruiz Marcelino',
       userEmail: 'helder.ruiz.marcelino@gmail.com',
-      time: '12:34',
+      time: '12:53',
       date: '13/11/2026',
       timestamp: now.toISOString(),
     },
@@ -219,7 +178,7 @@ export async function getRealtimeActivities(): Promise<AccessActivity[]> {
       action: 'Visita ao Sistema',
       userName: 'Helder Ruiz Marcelino',
       userEmail: 'helder.ruiz.marcelino@gmail.com',
-      time: '12:29',
+      time: '12:47',
       date: '13/11/2026',
       timestamp: now.toISOString(),
     },
@@ -228,12 +187,39 @@ export async function getRealtimeActivities(): Promise<AccessActivity[]> {
       action: 'Visita ao Sistema',
       userName: 'Helder Ruiz Marcelino',
       userEmail: 'helder.ruiz.marcelino@gmail.com',
-      time: '12:28',
+      time: '12:34',
       date: '13/11/2026',
       timestamp: now.toISOString(),
     },
     {
       id: 'log-5',
+      action: 'Visita ao Sistema',
+      userName: 'Helder Ruiz Marcelino',
+      userEmail: 'helder.ruiz.marcelino@gmail.com',
+      time: '12:29',
+      date: '13/11/2026',
+      timestamp: now.toISOString(),
+    },
+    {
+      id: 'log-6',
+      action: 'Visita ao Sistema',
+      userName: 'Helder Ruiz Marcelino',
+      userEmail: 'helder.ruiz.marcelino@gmail.com',
+      time: '12:28',
+      date: '13/11/2026',
+      timestamp: now.toISOString(),
+    },
+    {
+      id: 'log-7',
+      action: 'Visita ao Sistema',
+      userName: 'Helder Ruiz',
+      userEmail: 'helderruiz14@gmail.com',
+      time: '11:45',
+      date: '13/11/2026',
+      timestamp: now.toISOString(),
+    },
+    {
+      id: 'log-8',
       action: 'Visita ao Sistema',
       userName: 'Livia Reis',
       userEmail: 'studioliviareis@gmail.com',
@@ -242,7 +228,7 @@ export async function getRealtimeActivities(): Promise<AccessActivity[]> {
       timestamp: now.toISOString(),
     },
     {
-      id: 'log-6',
+      id: 'log-9',
       action: 'Visita ao Sistema',
       userName: 'Juliana Gama',
       userEmail: 'jgama2776@outlook.com',
@@ -250,12 +236,57 @@ export async function getRealtimeActivities(): Promise<AccessActivity[]> {
       date: '13/11/2026',
       timestamp: now.toISOString(),
     },
+    {
+      id: 'log-10',
+      action: 'Visita ao Sistema',
+      userName: 'Carlos Eduardo',
+      userEmail: 'carlos.edu@gmail.com',
+      time: '08:30',
+      date: '13/11/2026',
+      timestamp: now.toISOString(),
+    },
+    {
+      id: 'log-11',
+      action: 'Visita ao Sistema',
+      userName: 'Mariana Silva',
+      userEmail: 'mari.silva@hotmail.com',
+      time: '07:55',
+      date: '13/11/2026',
+      timestamp: now.toISOString(),
+    },
   ];
+
+  return sampleActivities;
 }
 
-// 3. Obter Usuários (Screenshot 2)
-export async function getUsersList(search = ''): Promise<{ users: AdminUser[]; isLive: boolean }> {
+// 3. Obter Usuários com suporte a scroll e puxando os 118 reais do Supabase
+export async function getUsersList(search = ''): Promise<{ users: AdminUser[]; isLive: boolean; totalCount: number }> {
   try {
+    // 1. Tenta RPC get_admin_users (Lê direto os 118 de auth.users com SECURITY DEFINER)
+    const { data: rpcData, error: rpcError } = await supabase.rpc('get_admin_users');
+    if (!rpcError && Array.isArray(rpcData) && rpcData.length > 0) {
+      let mapped: AdminUser[] = rpcData.map((item: any) => ({
+        id: item.id,
+        name: item.full_name || item.email?.split('@')[0] || 'Usuário',
+        email: item.email || '',
+        role: item.role || (item.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() ? 'ADMIN' : 'CLIENT'),
+        plan: formatDate(item.created_at),
+        planSubtitle: item.plan || 'GRATUITO',
+        status: item.status || 'Ativo',
+        createdAt: formatDate(item.created_at),
+      }));
+
+      const total = mapped.length;
+
+      if (search.trim()) {
+        const s = search.toLowerCase();
+        mapped = mapped.filter(u => u.name.toLowerCase().includes(s) || u.email.toLowerCase().includes(s));
+      }
+
+      return { users: mapped, isLive: true, totalCount: total };
+    }
+
+    // 2. Tenta tabela profiles
     let query = supabase.from('profiles').select('*').order('created_at', { ascending: false });
 
     if (search.trim()) {
@@ -267,29 +298,97 @@ export async function getUsersList(search = ''): Promise<{ users: AdminUser[]; i
     if (!error && data && data.length > 0) {
       const mapped: AdminUser[] = data.map(item => ({
         id: item.id,
-        name: item.full_name || 'Sem nome',
+        name: item.full_name || item.email?.split('@')[0] || 'Usuário',
         email: item.email || '',
-        role: item.role || 'CLIENT',
+        role: item.role || (item.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() ? 'ADMIN' : 'CLIENT'),
         plan: formatDate(item.created_at),
         planSubtitle: item.plan || 'GRATUITO',
         status: item.status || 'Ativo',
         createdAt: formatDate(item.created_at),
       }));
 
-      return { users: mapped, isLive: true };
+      return { users: mapped, isLive: true, totalCount: mapped.length };
     }
-  } catch {
-    // fallback
+  } catch (err) {
+    console.warn('Erro ao carregar usuários do Supabase:', err);
   }
 
-  // Fallback com pesquisa local
-  let filtered = [...FALLBACK_USERS];
+  // Se o SQL ainda não foi executado no Supabase, gera os registros com base nos 118 usuários
+  // para permitir navegação e rolagem completa
+  const mockUsers: AdminUser[] = [
+    {
+      id: 'admin-helder',
+      name: 'Helder Ruiz Marcelino',
+      email: 'helder.ruiz.marcelino@gmail.com',
+      role: 'ADMIN',
+      plan: '13/11/2026',
+      planSubtitle: 'GRATUITO',
+      status: 'Ativo',
+      createdAt: '13/11/2026',
+    },
+    {
+      id: 'admin-antonio',
+      name: 'Helder Ruiz Marcelino',
+      email: 'helderruiz14@gmail.com',
+      role: 'ADMIN',
+      plan: '23/03/2026',
+      status: 'Ativo',
+      createdAt: '23/03/2026',
+    },
+    {
+      id: 'user-livia',
+      name: 'LIVIA',
+      email: 'studioliviareis@gmail.com',
+      role: 'PROFESSIONAL',
+      plan: '10/11/2026',
+      planSubtitle: 'TRIAL (27D RESTANTES)',
+      status: 'Ativo',
+      createdAt: '10/11/2026',
+    },
+    {
+      id: 'user-juliana',
+      name: 'juliana',
+      email: 'jgama2776@outlook.com',
+      role: 'PROFESSIONAL',
+      plan: '27/09/2026',
+      planSubtitle: 'EXPIRADO HÁ 16D',
+      status: 'Bloqueado',
+      createdAt: '27/09/2026',
+    },
+    {
+      id: 'user-cliente',
+      name: 'Cliente BeautyBook',
+      email: 'cliente@gmail.com',
+      role: 'CLIENT',
+      plan: '26/04/2026',
+      status: 'Ativo',
+      createdAt: '26/04/2026',
+    },
+  ];
+
+  // Adiciona os demais usuários até completar os 118 para testar a rolagem enquanto executa o SQL
+  for (let i = 6; i <= 118; i++) {
+    const day = (i % 28) + 1;
+    const month = (i % 12) + 1;
+    mockUsers.push({
+      id: `usr-${i}`,
+      name: `Usuário ${i}`,
+      email: `usuario${i}@gmail.com`,
+      role: 'CLIENT',
+      plan: `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/2026`,
+      planSubtitle: 'GRATUITO',
+      status: 'Ativo',
+      createdAt: `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/2026`,
+    });
+  }
+
+  let filtered = mockUsers;
   if (search.trim()) {
     const s = search.toLowerCase();
     filtered = filtered.filter(u => u.name.toLowerCase().includes(s) || u.email.toLowerCase().includes(s));
   }
 
-  return { users: filtered, isLive: false };
+  return { users: filtered, isLive: false, totalCount: 118 };
 }
 
 // 4. Bloquear / Desbloquear Usuário
@@ -306,11 +405,6 @@ export async function toggleUserStatus(userId: string, currentStatus: 'Ativo' | 
     // fallback
   }
 
-  // Atualiza no fallback local
-  const user = FALLBACK_USERS.find(u => u.id === userId);
-  if (user) {
-    user.status = newStatus;
-  }
   return true;
 }
 
@@ -323,14 +417,10 @@ export async function deleteUser(userId: string): Promise<boolean> {
     // fallback
   }
 
-  const idx = FALLBACK_USERS.findIndex(u => u.id === userId);
-  if (idx !== -1) {
-    FALLBACK_USERS.splice(idx, 1);
-  }
   return true;
 }
 
-// 6. Obter Assinaturas (Screenshot 3)
+// 6. Obter Assinaturas
 export async function getSubscriptionsList(search = ''): Promise<{ subscriptions: SubscriptionItem[]; isLive: boolean }> {
   try {
     let query = supabase.from('subscriptions').select('*').order('created_at', { ascending: false });
@@ -361,4 +451,3 @@ export async function getSubscriptionsList(search = ''): Promise<{ subscriptions
 
   return { subscriptions: [], isLive: false };
 }
-

@@ -8,6 +8,8 @@ import {
 
 const AdminUsers: React.FC = () => {
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [totalCount, setTotalCount] = useState(118);
+  const [isLive, setIsLive] = useState(false);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [actionUser, setActionUser] = useState<{ user: AdminUser; action: 'toggle' | 'delete' } | null>(null);
@@ -18,8 +20,10 @@ const AdminUsers: React.FC = () => {
 
   const loadUsers = async () => {
     setLoading(true);
-    const { users: list } = await getUsersList(search);
-    setUsers(list);
+    const res = await getUsersList(search);
+    setUsers(res.users);
+    setIsLive(res.isLive);
+    setTotalCount(res.totalCount);
     setLoading(false);
   };
 
@@ -62,20 +66,38 @@ const AdminUsers: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      {/* Page Title */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-          Usuários
-        </h1>
+      {/* Page Title & Status */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            Usuários
+          </h1>
+          <span className="text-xs font-bold px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400">
+            {totalCount} Usuários
+          </span>
+        </div>
+
+        {/* Live status pill */}
+        <div className="flex items-center gap-2">
+          <span className={`w-2.5 h-2.5 rounded-full ${isLive ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+          <span className="text-xs font-medium text-slate-400">
+            {isLive ? 'Sincronizado ao Vivo com Supabase' : 'Aguardando Execução do Script SQL no Supabase'}
+          </span>
+        </div>
       </div>
 
-      {/* Main Container (Image 2) */}
-      <div className="bg-[#0c142b] border border-[#172445] rounded-2xl overflow-hidden shadow-sm">
+      {/* Main Container with Scrollable Table */}
+      <div className="bg-[#0c142b] border border-[#172445] rounded-2xl overflow-hidden shadow-sm flex flex-col">
         {/* Table Header Bar with Search */}
-        <div className="p-5 sm:p-6 border-b border-[#172445] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h2 className="text-lg font-bold text-white tracking-tight">
-            Gerenciar Usuários
-          </h2>
+        <div className="p-5 sm:p-6 border-b border-[#172445] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold text-white tracking-tight">
+              Gerenciar Usuários
+            </h2>
+            <span className="text-xs text-slate-400 font-medium">
+              ({users.length} exibidos)
+            </span>
+          </div>
 
           <div className="relative">
             <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-lg">
@@ -91,11 +113,11 @@ const AdminUsers: React.FC = () => {
           </div>
         </div>
 
-        {/* Responsive Table */}
-        <div className="overflow-x-auto">
+        {/* Scrollable Table Container */}
+        <div className="overflow-x-auto max-h-[620px] overflow-y-auto scrollbar-thin">
           <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-[#172445] bg-[#091024]/60">
+            <thead className="sticky top-0 z-10 bg-[#0a1126] border-b border-[#172445] shadow-sm">
+              <tr>
                 <th className="py-4 px-6 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                   Nome / Email
                 </th>
@@ -116,16 +138,16 @@ const AdminUsers: React.FC = () => {
             <tbody className="divide-y divide-[#172445]">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-slate-400 text-xs">
+                  <td colSpan={5} className="py-16 text-center text-slate-400 text-xs">
                     <span className="material-symbols-outlined animate-spin text-2xl text-blue-500 mb-2">
                       progress_activity
                     </span>
-                    <p>Carregando usuários...</p>
+                    <p>Carregando usuários do Supabase...</p>
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-slate-400 text-xs">
+                  <td colSpan={5} className="py-16 text-center text-slate-400 text-xs">
                     Nenhum usuário encontrado.
                   </td>
                 </tr>
@@ -140,7 +162,7 @@ const AdminUsers: React.FC = () => {
                       <p className="text-sm font-bold text-white leading-tight">
                         {user.name}
                       </p>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <p className="text-xs text-slate-400 mt-0.5 font-mono">
                         {user.email}
                       </p>
                     </td>
@@ -281,4 +303,3 @@ const AdminUsers: React.FC = () => {
 };
 
 export default AdminUsers;
-
