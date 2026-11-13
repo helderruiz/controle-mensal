@@ -56,6 +56,15 @@ const AdminSubscriptions: React.FC = () => {
     setTimeout(() => setConfigSavedToast(false), 3000);
   };
 
+  const handleToggleBlockActive = async () => {
+    const updated = !config.blockActive;
+    const newCfg = { ...config, blockActive: updated };
+    setConfig(newCfg);
+    await saveSubscriptionConfig(newCfg);
+    setConfigSavedToast(true);
+    setTimeout(() => setConfigSavedToast(false), 2500);
+  };
+
   const handleManualActivate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!manualEmail.trim()) return;
@@ -119,7 +128,7 @@ const AdminSubscriptions: React.FC = () => {
             </span>
             <button
               type="button"
-              onClick={() => setConfig(prev => ({ ...prev, blockActive: !prev.blockActive }))}
+              onClick={handleToggleBlockActive}
               className={`w-12 h-6 flex items-center rounded-full p-1 transition-colors duration-200 ${
                 config.blockActive ? 'bg-emerald-500 justify-end' : 'bg-slate-700 justify-start'
               }`}

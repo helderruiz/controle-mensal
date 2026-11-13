@@ -92,17 +92,34 @@ export async function checkUserMustBeBlocked(user: SupabaseUser | null | undefin
     return false;
   }
 
-  // 3. Obtém a configuração do sistema
-  const config = await getSubscriptionConfig();
+  // 3. PRIORIDADE MÁXIMA: Checa se o usuário específico está com status "Bloqueado" no banco
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('plan, plan_expires_at, status')
+      .eq('id', user.id)
+      .maybeSingle();
 
-  // 4. Se a chave geral de bloqueio estiver DESLIGADA no painel, NENHUM usuário é bloqueado
-  if (!config.blockActive) {
-    return false;
+    if (profile) {
+      // Se foi bloqueado manualmente no painel admin, BLOQUEIA NA HORA!
+      if (profile.status === 'Bloqueado') {
+        return true;
+      }
+
+      // Se possui plano mensal pago e ainda dentro da validade, LIBERA!
+      if (profile.plan === 'MENSAL_4_99' && profile.plan_expires_at) {
+        const expiresAt = new Date(profile.plan_expires_at);
+        if (expiresAt > new Date()) {
+          return false;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Erro ao verificar status individual do profile:', err);
   }
 
-  // 5. Verifica se o usuário tem assinatura ativa ou período válido no Supabase
+  // 4. Checa na tabela subscriptions se possui assinatura ativa
   try {
-    // Checa na tabela subscriptions
     const { data: subData } = await supabase
       .from('subscriptions')
       .select('status, current_period_end')
@@ -116,37 +133,23 @@ export async function checkUserMustBeBlocked(user: SupabaseUser | null | undefin
       if (sub.current_period_end) {
         const expiresAt = new Date(sub.current_period_end);
         if (expiresAt > new Date()) {
-          return false; // Assinatura paga e válida!
-        }
-      } else {
-        return false;
-      }
-    }
-
-    // Checa na tabela profiles
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('plan, plan_expires_at, status')
-      .eq('id', user.id)
-      .single();
-
-    if (profile) {
-      if (profile.status === 'Bloqueado') {
-        return true;
-      }
-      if (profile.plan === 'MENSAL_4_99' && profile.plan_expires_at) {
-        const expiresAt = new Date(profile.plan_expires_at);
-        if (expiresAt > new Date()) {
-          return false; // Válido!
+          return false; // Assinatura válida!
         }
       }
     }
-  } catch {
-    // Em caso de falha de conexão, para não prejudicar o usuário em produção, não bloqueia
+  } catch (err) {
+    console.warn('Erro ao verificar subscriptions:', err);
+  }
+
+  // 5. REGRA DO DIA 01: Obtém a configuração do sistema
+  const config = await getSubscriptionConfig();
+
+  // Se a chave geral de bloqueio do dia 01 estiver desligada, permite o acesso dos não-bloqueados
+  if (!config.blockActive) {
     return false;
   }
 
-  // Se o bloqueio está ativado e o usuário não possui pagamento para o mês corrente:
+  // Se a chave geral do dia 01 está LIGADA e o usuário não possui pagamento para o mês:
   return true;
 }
 

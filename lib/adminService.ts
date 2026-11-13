@@ -392,20 +392,33 @@ export async function getUsersList(search = ''): Promise<{ users: AdminUser[]; i
 }
 
 // 4. Bloquear / Desbloquear Usuário
-export async function toggleUserStatus(userId: string, currentStatus: 'Ativo' | 'Bloqueado'): Promise<boolean> {
+export async function toggleUserStatus(
+  userId: string,
+  currentStatus: 'Ativo' | 'Bloqueado',
+  userEmail?: string,
+  userName?: string
+): Promise<boolean> {
   const newStatus = currentStatus === 'Ativo' ? 'Bloqueado' : 'Ativo';
   try {
     const { error } = await supabase
       .from('profiles')
-      .update({ status: newStatus, updated_at: new Date().toISOString() })
-      .eq('id', userId);
+      .upsert({
+        id: userId,
+        status: newStatus,
+        email: userEmail,
+        full_name: userName,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
 
-    if (!error) return true;
-  } catch {
-    // fallback
+    if (error) {
+      console.error('Erro no Supabase ao alterar status:', error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('Erro no toggleUserStatus:', err);
+    return false;
   }
-
-  return true;
 }
 
 // 5. Excluir Usuário

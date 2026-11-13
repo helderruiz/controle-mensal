@@ -104,20 +104,38 @@ create policy "Subs select livre" on public.subscriptions for all to authenticat
     const { user, action } = actionUser;
 
     if (action === 'toggle') {
-      await toggleUserStatus(user.id, user.status);
+      await toggleUserStatus(user.id, user.status, user.email, user.name);
     } else if (action === 'delete') {
       await deleteUser(user.id);
     }
 
     setActionUser(null);
-    loadUsers();
+    await loadUsers();
   };
 
   const handleGrantSubscription = async (user: AdminUser) => {
     const ok = window.confirm(`Deseja ativar o Plano Mensal R$ 4,99 por 30 dias para ${user.name} (${user.email})?`);
     if (!ok) return;
     await activateUserSubscription(user.id, user.email, user.name, 30);
+    alert(`Assinatura de R$ 4,99 ativada por 30 dias para ${user.name}!`);
     loadUsers();
+  };
+
+  const handleToggleStatus = async (user: AdminUser) => {
+    const nextStatus = user.status === 'Ativo' ? 'Bloqueado' : 'Ativo';
+    const confirmMsg = nextStatus === 'Bloqueado'
+      ? `Deseja realmente BLOQUEAR o acesso de ${user.name} (${user.email})? O pop-up de cobrança de R$ 4,99 aparecerá para esse usuário.`
+      : `Deseja DESBLOQUEAR e liberar o acesso de ${user.name} (${user.email})?`;
+    
+    if (!window.confirm(confirmMsg)) return;
+
+    const ok = await toggleUserStatus(user.id, user.status, user.email, user.name);
+    if (ok) {
+      alert(`Status de ${user.name} alterado para ${nextStatus} com sucesso!`);
+      await loadUsers();
+    } else {
+      alert('Não foi possível atualizar no Supabase. Verifique a conexão.');
+    }
   };
 
   const getRoleBadge = (role: string) => {
@@ -330,7 +348,7 @@ create policy "Subs select livre" on public.subscriptions for all to authenticat
 
                         {/* Ativar/Desbloquear */}
                         <button
-                          onClick={() => setActionUser({ user, action: 'toggle' })}
+                          onClick={() => handleToggleStatus(user)}
                           className={`w-8 h-8 rounded-lg flex items-center justify-center transition ${
                             user.status === 'Ativo'
                               ? 'text-slate-500 hover:text-emerald-400 hover:bg-emerald-500/10'
@@ -345,10 +363,10 @@ create policy "Subs select livre" on public.subscriptions for all to authenticat
 
                         {/* Bloquear */}
                         <button
-                          onClick={() => setActionUser({ user, action: 'toggle' })}
+                          onClick={() => handleToggleStatus(user)}
                           className={`w-8 h-8 rounded-lg flex items-center justify-center transition ${
                             user.status === 'Bloqueado'
-                              ? 'text-amber-400 bg-amber-500/10'
+                              ? 'text-rose-400 bg-rose-500/10'
                               : 'text-slate-400 hover:text-amber-400 hover:bg-amber-500/10'
                           }`}
                           title="Bloquear usuário"
