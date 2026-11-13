@@ -411,17 +411,19 @@ export async function toggleUserStatus(
       return { success: true };
     }
 
-    // 2. Se a RPC não existir ainda, tenta UPDATE direto na tabela profiles
+    console.warn('RPC admin_set_user_status falhou:', rpcErr?.message);
+
+    // 2. Fallback: UPDATE direto (SEM updated_at para evitar erro de coluna inexistente)
     const { error: updateErr } = await supabase
       .from('profiles')
-      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .update({ status: newStatus })
       .eq('id', userId);
 
     if (!updateErr) {
       return { success: true };
     }
 
-    // 3. Tenta UPSERT direto
+    // 3. Fallback: UPSERT direto (SEM updated_at)
     const { error: upsertErr } = await supabase
       .from('profiles')
       .upsert({
@@ -429,7 +431,6 @@ export async function toggleUserStatus(
         status: newStatus,
         email: userEmail,
         full_name: userName,
-        updated_at: new Date().toISOString(),
       }, { onConflict: 'id' });
 
     if (!upsertErr) {

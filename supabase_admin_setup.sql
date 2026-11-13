@@ -91,6 +91,7 @@ $$;
 grant execute on function public.get_admin_users() to authenticated, anon;
 
 -- FUNÇÃO RPC PARA ALTERAR STATUS DE QUALQUER USUÁRIO (BLOQUEAR / ATIVAR)
+-- Compatível com tabelas que NÃO tenham a coluna updated_at
 create or replace function public.admin_set_user_status(target_user_id uuid, new_status text)
 returns void
 security definer
@@ -99,12 +100,12 @@ language plpgsql
 as $$
 begin
   update public.profiles
-  set status = new_status, updated_at = now()
+  set status = new_status
   where id = target_user_id;
 
   if not found then
-    insert into public.profiles (id, status, updated_at)
-    values (target_user_id, new_status, now());
+    insert into public.profiles (id, status)
+    values (target_user_id, new_status);
   end if;
 end;
 $$;
@@ -122,12 +123,12 @@ declare
   new_expires timestamptz := now() + (days || ' days')::interval;
 begin
   update public.profiles
-  set plan = 'MENSAL_4_99', plan_expires_at = new_expires, status = 'Ativo', updated_at = now()
+  set plan = 'MENSAL_4_99', plan_expires_at = new_expires, status = 'Ativo'
   where id = target_user_id;
   
   if not found then
-    insert into public.profiles (id, email, full_name, plan, plan_expires_at, status, updated_at)
-    values (target_user_id, target_email, target_name, 'MENSAL_4_99', new_expires, 'Ativo', now());
+    insert into public.profiles (id, email, full_name, plan, plan_expires_at, status)
+    values (target_user_id, target_email, target_name, 'MENSAL_4_99', new_expires, 'Ativo');
   end if;
 
   insert into public.subscriptions (user_id, user_name, user_email, plan_name, amount, status, gateway, current_period_end)
