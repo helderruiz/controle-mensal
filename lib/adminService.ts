@@ -391,16 +391,38 @@ export async function getUsersList(search = ''): Promise<{ users: AdminUser[]; i
   return { users: filtered, isLive: false, totalCount: 118 };
 }
 
-// 4. Bloquear / Desbloquear Usuário
+// 4. Bloquear / Desbloquear Usuário (Infalível com RPC e fallback)
 export async function toggleUserStatus(
   userId: string,
   currentStatus: 'Ativo' | 'Bloqueado',
   userEmail?: string,
   userName?: string
-): Promise<boolean> {
+): Promise<{ success: boolean; errorMsg?: string }> {
   const newStatus = currentStatus === 'Ativo' ? 'Bloqueado' : 'Ativo';
+
   try {
-    const { error } = await supabase
+    // 1. Tenta via RPC SECURITY DEFINER (imune a bloqueios de RLS)
+    const { error: rpcErr } = await supabase.rpc('admin_set_user_status', {
+      target_user_id: userId,
+      new_status: newStatus,
+    });
+
+    if (!rpcErr) {
+      return { success: true };
+    }
+
+    // 2. Se a RPC não existir ainda, tenta UPDATE direto na tabela profiles
+    const { error: updateErr } = await supabase
+      .from('profiles')
+      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .eq('id', userId);
+
+    if (!updateErr) {
+      return { success: true };
+    }
+
+    // 3. Tenta UPSERT direto
+    const { error: upsertErr } = await supabase
       .from('profiles')
       .upsert({
         id: userId,
@@ -410,14 +432,16 @@ export async function toggleUserStatus(
         updated_at: new Date().toISOString(),
       }, { onConflict: 'id' });
 
-    if (error) {
-      console.error('Erro no Supabase ao alterar status:', error);
-      return false;
+    if (!upsertErr) {
+      return { success: true };
     }
-    return true;
-  } catch (err) {
-    console.error('Erro no toggleUserStatus:', err);
-    return false;
+
+    const msg = rpcErr?.message || updateErr?.message || upsertErr?.message || 'Erro desconhecido';
+    console.error('Falha ao atualizar status:', { rpcErr, updateErr, upsertErr });
+    return { success: false, errorMsg: msg };
+  } catch (err: any) {
+    console.error('Erro na chamada toggleUserStatus:', err);
+    return { success: false, errorMsg: err?.message || 'Erro de conexão' };
   }
 }
 

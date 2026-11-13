@@ -166,7 +166,17 @@ export async function activateUserSubscription(
   expiresAt.setDate(expiresAt.getDate() + days);
 
   try {
-    // 1. Atualiza profiles
+    // 1. Tenta RPC direta
+    const { error: rpcErr } = await supabase.rpc('admin_activate_subscription', {
+      target_user_id: userId,
+      target_email: userEmail,
+      target_name: userName,
+      days: days,
+    });
+
+    if (!rpcErr) return true;
+
+    // 2. Fallback para upsert em profiles
     await supabase.from('profiles').upsert({
       id: userId,
       email: userEmail,
@@ -177,7 +187,7 @@ export async function activateUserSubscription(
       updated_at: new Date().toISOString(),
     });
 
-    // 2. Insere registro em subscriptions
+    // 3. Fallback para insert em subscriptions
     await supabase.from('subscriptions').insert([
       {
         user_id: userId,

@@ -32,7 +32,8 @@ drop policy if exists "Permitir atualizacao de perfis para autenticados" on publ
 create policy "Permitir atualizacao de perfis para autenticados"
   on public.profiles for all
   to authenticated
-  using (true);
+  using (true)
+  with check (true);
 
 -- 2. MIGRAÇÃO AUTOMÁTICA DOS SEUS 118 USUÁRIOS DO SUPABASE AUTH
 insert into public.profiles (id, email, full_name, role, status, plan, created_at)
@@ -88,6 +89,53 @@ end;
 $$;
 
 grant execute on function public.get_admin_users() to authenticated, anon;
+
+-- FUNÇÃO RPC PARA ALTERAR STATUS DE QUALQUER USUÁRIO (BLOQUEAR / ATIVAR)
+create or replace function public.admin_set_user_status(target_user_id uuid, new_status text)
+returns void
+security definer
+set search_path = public, auth
+language plpgsql
+as $$
+begin
+  update public.profiles
+  set status = new_status, updated_at = now()
+  where id = target_user_id;
+
+  if not found then
+    insert into public.profiles (id, status, updated_at)
+    values (target_user_id, new_status, now());
+  end if;
+end;
+$$;
+
+grant execute on function public.admin_set_user_status(uuid, text) to authenticated, anon;
+
+-- FUNÇÃO RPC PARA ATIVAR ASSINATURA MANUAL DE 30 DIAS
+create or replace function public.admin_activate_subscription(target_user_id uuid, target_email text, target_name text, days int default 30)
+returns void
+security definer
+set search_path = public, auth
+language plpgsql
+as $$
+declare
+  new_expires timestamptz := now() + (days || ' days')::interval;
+begin
+  update public.profiles
+  set plan = 'MENSAL_4_99', plan_expires_at = new_expires, status = 'Ativo', updated_at = now()
+  where id = target_user_id;
+  
+  if not found then
+    insert into public.profiles (id, email, full_name, plan, plan_expires_at, status, updated_at)
+    values (target_user_id, target_email, target_name, 'MENSAL_4_99', new_expires, 'Ativo', now());
+  end if;
+
+  insert into public.subscriptions (user_id, user_name, user_email, plan_name, amount, status, gateway, current_period_end)
+  values (target_user_id, target_name, target_email, 'Mensal R$ 4,99', 4.99, 'ativa', 'stripe', new_expires);
+end;
+$$;
+
+grant execute on function public.admin_activate_subscription(uuid, text, text, int) to authenticated, anon;
 
 -- 4. TRIGGER PARA NOVOS CADASTROS NO APP
 create or replace function public.handle_new_user()

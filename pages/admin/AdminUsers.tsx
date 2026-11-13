@@ -129,12 +129,12 @@ create policy "Subs select livre" on public.subscriptions for all to authenticat
     
     if (!window.confirm(confirmMsg)) return;
 
-    const ok = await toggleUserStatus(user.id, user.status, user.email, user.name);
-    if (ok) {
+    const res = await toggleUserStatus(user.id, user.status, user.email, user.name);
+    if (res.success) {
       alert(`Status de ${user.name} alterado para ${nextStatus} com sucesso!`);
       await loadUsers();
     } else {
-      alert('Não foi possível atualizar no Supabase. Verifique a conexão.');
+      alert('Erro no Supabase: ' + (res.errorMsg || 'Verifique a conexão'));
     }
   };
 
