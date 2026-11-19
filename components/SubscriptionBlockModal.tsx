@@ -17,7 +17,7 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
 }) => {
   const [checking, setChecking] = useState(false);
   const [copiedPix, setCopiedPix] = useState(false);
-  const [copiedSupportNumber, setCopiedSupportNumber] = useState(false);
+  const [whatsAppFeedback, setWhatsAppFeedback] = useState('');
   const refreshStatusRef = useRef(onRefreshStatus);
   refreshStatusRef.current = onRefreshStatus;
 
@@ -29,11 +29,7 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
     setTimeout(() => setCopiedPix(false), 3000);
   };
 
-  const handleCopySupportNumber = () => {
-    navigator.clipboard.writeText('17936261493');
-    setCopiedSupportNumber(true);
-    setTimeout(() => setCopiedSupportNumber(false), 3000);
-  };
+
 
   useEffect(() => {
     const refreshWhenReturning = () => {
@@ -77,21 +73,33 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
   const rawPhone = (config.whatsappSupport || '5517936261493').replace(/\D/g, '');
   const rawText = `Olá Controle Mensal! Segue o comprovante do pagamento da minha mensalidade de R$ 4,99 para liberação da minha conta.\n\nE-mail cadastrado: ${user.email}`;
   const encodedText = encodeURIComponent(rawText);
-
-  // URLs de disparo
-  const universalWebUrl = `https://api.whatsapp.com/send?phone=${rawPhone}&text=${encodedText}`;
-  const directSchemeUrl = `whatsapp://send?phone=${rawPhone}&text=${encodedText}`;
+  const whatsappUrl = `https://api.whatsapp.com/send?phone=${rawPhone}&text=${encodedText}`;
 
   const handleOpenWhatsApp = (e: React.MouseEvent) => {
     e.preventDefault();
 
-    // No Android / WebView, usamos window.open com a URL universal do WhatsApp.
-    // O sistema operacional Android intercepta essa URL e abre diretamente o app do WhatsApp
-    // sem trocar a página do WebView e sem causar erro de tela branca!
-    try {
-      window.open(universalWebUrl, '_system');
-    } catch {
-      window.open(universalWebUrl, '_blank');
+    // Detecta se está rodando dentro do Kodular WebView (AppInventor)
+    const isKodularWebView = !!(window as any).AppInventor;
+
+    if (isKodularWebView) {
+      // Usa a API nativa do Kodular para sinalizar o app Android.
+      // O Kodular intercepta via evento "WebViewStringChange" e abre o WhatsApp
+      // pelo Activity Starter, sem navegar o WebView (evita tela branca).
+      try {
+        (window as any).AppInventor.setWebViewString('OPEN_WHATSAPP:' + whatsappUrl);
+        setWhatsAppFeedback('Abrindo WhatsApp...');
+        setTimeout(() => setWhatsAppFeedback(''), 3000);
+      } catch {
+        // Fallback: copia mensagem e instrui usuário
+        const msgParaCopiar = rawText;
+        navigator.clipboard.writeText(msgParaCopiar).then(() => {
+          setWhatsAppFeedback('Mensagem copiada! Abra o WhatsApp e envie para (17) 93626-1493');
+          setTimeout(() => setWhatsAppFeedback(''), 5000);
+        });
+      }
+    } else {
+      // Navegador normal (desktop/mobile): abre em nova aba
+      window.open(whatsappUrl, '_blank');
     }
   };
 
@@ -209,23 +217,12 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
               <span>Enviar Comprovante no WhatsApp</span>
             </button>
 
-            {/* Número alternativo com 1 clique para copiar caso o app não abra no celular */}
-            <div className="flex items-center justify-between bg-[#070d1e]/90 px-3 py-2 rounded-xl border border-white/5 text-[11px] text-slate-400">
-              <div className="flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-sm text-emerald-400">phone_iphone</span>
-                <span>WhatsApp: <strong className="text-slate-200">(17) 93626-1493</strong></span>
-              </div>
-              <button
-                type="button"
-                onClick={handleCopySupportNumber}
-                className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition"
-              >
-                <span className="material-symbols-outlined text-xs">
-                  {copiedSupportNumber ? 'check' : 'content_copy'}
-                </span>
-                <span>{copiedSupportNumber ? 'Copiado!' : 'Copiar número'}</span>
-              </button>
-            </div>
+            {/* Feedback do WhatsApp */}
+            {whatsAppFeedback && (
+              <p className="text-center text-xs text-emerald-400 font-semibold animate-pulse">
+                {whatsAppFeedback}
+              </p>
+            )}
 
             {/* Aviso sobre tempo de validação do PIX */}
             <div className="flex items-start gap-2 bg-[#070d1e]/80 p-2.5 rounded-xl border border-white/5 text-[11px] text-slate-400 leading-tight">
