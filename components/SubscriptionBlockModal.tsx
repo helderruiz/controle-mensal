@@ -115,9 +115,9 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
     };
 
     if (isKodularWebView) {
-      // Kodular catches this URI in Page Loaded and opens it with Activity Starter.
+      // The Kodular WebViewStringChanged event starts WhatsApp through Activity Starter.
       setWhatsAppFeedback('Abrindo WhatsApp...');
-      window.location.href = nativeWhatsAppUrl;
+      (window as any).AppInventor.setWebViewString(nativeWhatsAppUrl);
     } else if (isAndroidWebView) {
       // Sem a ponte nativa, window.open pode redirecionar esta mesma janela
       // para whatsapp:// e exibir ERR_UNKNOWN_URL_SCHEME.
