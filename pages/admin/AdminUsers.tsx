@@ -13,6 +13,7 @@ const AdminUsers: React.FC = () => {
   const [totalCount, setTotalCount] = useState(118);
   const [isLive, setIsLive] = useState(false);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'Ativo' | 'Bloqueado'>('all');
   const [loading, setLoading] = useState(true);
   const [actionUser, setActionUser] = useState<{ user: AdminUser; action: 'toggle' | 'delete' } | null>(null);
   const [showSqlModal, setShowSqlModal] = useState(false);
@@ -234,15 +235,51 @@ create policy "Subs select livre" on public.subscriptions for all to authenticat
 
       {/* Main Container with Scrollable Table */}
       <div className="bg-[#0c142b] border border-[#172445] rounded-2xl overflow-hidden shadow-sm flex flex-col">
-        {/* Table Header Bar with Search */}
+        {/* Table Header Bar with Search & Filters */}
         <div className="p-5 sm:p-6 border-b border-[#172445] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-lg font-bold text-white tracking-tight">
               Gerenciar Usuários
             </h2>
             <span className="text-xs text-slate-400 font-medium">
-              ({users.length} exibidos)
+              ({users.filter(u => statusFilter === 'all' || u.status === statusFilter).length} exibidos)
             </span>
+
+            {/* Abas Rápidas de Filtro: Todos / Ativos / Bloqueados */}
+            <div className="flex items-center gap-1.5 ml-0 sm:ml-4 bg-[#070d1e] p-1 rounded-xl border border-[#172445]">
+              <button
+                onClick={() => setStatusFilter('all')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
+                  statusFilter === 'all'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Todos ({users.length})
+              </button>
+              <button
+                onClick={() => setStatusFilter('Ativo')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                  statusFilter === 'Ativo'
+                    ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 shadow-sm'
+                    : 'text-slate-400 hover:text-emerald-400'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span>Ativos ({users.filter(u => u.status === 'Ativo').length})</span>
+              </button>
+              <button
+                onClick={() => setStatusFilter('Bloqueado')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                  statusFilter === 'Bloqueado'
+                    ? 'bg-rose-600/30 text-rose-300 border border-rose-500/40 shadow-sm'
+                    : 'text-slate-400 hover:text-rose-400'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-rose-500" />
+                <span>Bloqueados ({users.filter(u => u.status === 'Bloqueado').length})</span>
+              </button>
+            </div>
           </div>
 
           <div className="relative">
@@ -254,7 +291,7 @@ create policy "Subs select livre" on public.subscriptions for all to authenticat
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por nome ou email..."
-              className="w-full sm:w-80 bg-[#070d1e] border border-[#172445] rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition"
+              className="w-full sm:w-72 bg-[#070d1e] border border-[#172445] rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition"
             />
           </div>
         </div>
@@ -291,14 +328,16 @@ create policy "Subs select livre" on public.subscriptions for all to authenticat
                     <p>Carregando usuários do Supabase...</p>
                   </td>
                 </tr>
-              ) : users.length === 0 ? (
+              ) : users.filter(u => statusFilter === 'all' || u.status === statusFilter).length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-16 text-center text-slate-400 text-xs">
-                    Nenhum usuário encontrado.
+                    Nenhum usuário encontrado com esse filtro.
                   </td>
                 </tr>
               ) : (
-                users.map((user) => (
+                users
+                  .filter(u => statusFilter === 'all' || u.status === statusFilter)
+                  .map((user) => (
                   <tr
                     key={user.id}
                     className="hover:bg-white/[0.02] transition-colors group"
@@ -358,6 +397,21 @@ create policy "Subs select livre" on public.subscriptions for all to authenticat
                     {/* AÇÕES */}
                     <td className="py-4 px-6 text-right">
                       <div className="inline-flex items-center gap-2">
+                        {/* Botão de Enviar E-mail de Oferta / Contato direto */}
+                        {user.status === 'Bloqueado' && (
+                          <a
+                            href={`mailto:${user.email}?subject=${encodeURIComponent('Condição Especial para o Controle Mensal 🎁')}&body=${encodeURIComponent(
+                              `Olá, ${user.name.split(' ')[0]}!\n\nNotamos que seu acesso ao Controle Mensal está bloqueado. Preparamos uma condição super especial para você continuar usando e organizando suas finanças!\n\nQualquer dúvida estou à disposição.\n\nAbraços,\nEquipe Controle Mensal`
+                            )}`}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 transition"
+                            title={`Enviar e-mail com oferta para ${user.email}`}
+                          >
+                            <span className="material-symbols-outlined text-lg">
+                              mail
+                            </span>
+                          </a>
+                        )}
+
                         {/* Ativar Plano R$ 4,99 */}
                         <button
                           onClick={() => handleGrantSubscription(user)}
