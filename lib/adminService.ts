@@ -45,9 +45,8 @@ export interface AdminStats {
 // Verifica se o usuário atual tem permissão de Administrador
 export function isUserAdmin(user: SupabaseUser | null | undefined): boolean {
   if (!user || !user.email) return false;
-  const emailMatch = user.email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
-  const roleMatch = user.user_metadata?.role === 'admin' || user.app_metadata?.role === 'admin';
-  return emailMatch || roleMatch;
+  return Boolean(user.email_confirmed_at)
+    && user.email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
 }
 
 // Helper para formatar data e hora

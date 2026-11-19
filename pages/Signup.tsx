@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import FormField from '../components/FormField';
+import { ADMIN_EMAIL } from '../lib/adminService';
 
 const Signup: React.FC = () => {
   const navigate = useNavigate();
@@ -15,6 +16,11 @@ const Signup: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+      setError('Esta conta e reservada ao administrador. Entre pelo painel admin.');
+      return;
+    }
 
     if (pass.length < 6) {
       setError('A senha deve ter pelo menos 6 caracteres.');

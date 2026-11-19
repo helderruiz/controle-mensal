@@ -1,65 +1,26 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { ADMIN_EMAIL, isUserAdmin } from '../../lib/adminService';
+import { isUserAdmin } from '../../lib/adminService';
 
 const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState(ADMIN_EMAIL);
-  const [password, setPassword] = useState('Ruiz@166123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [infoMessage, setInfoMessage] = useState('');
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setInfoMessage('');
     setLoading(true);
 
     try {
-      // 1. Tenta fazer login com a senha informada
-      let { data, error: signInError } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       });
-
-      // 2. Se a conta ainda não existir no Supabase Auth, cria automaticamente
-      if (signInError && (signInError.message.includes('Invalid login') || signInError.message.includes('not found'))) {
-        setInfoMessage('Criando sua conta de administrador no Supabase...');
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: email.trim(),
-          password,
-          options: {
-            data: {
-              full_name: 'Helder Ruiz Marcelino',
-              role: 'admin',
-            },
-          },
-        });
-
-        if (signUpError) {
-          setError(signUpError.message);
-          setLoading(false);
-          return;
-        }
-
-        // Se a confirmação de e-mail estiver desabilitada no Supabase, a sessão já existe
-        if (signUpData.session) {
-          data = signUpData;
-          signInError = null;
-        } else {
-          // Tenta logar novamente
-          const retry = await supabase.auth.signInWithPassword({
-            email: email.trim(),
-            password,
-          });
-          data = retry.data;
-          signInError = retry.error;
-        }
-      }
-
       if (signInError) {
         setError(signInError.message === 'Invalid login credentials' 
           ? 'E-mail ou senha incorretos. Se ainda não confirmou o e-mail no Supabase, verifique sua caixa de entrada.'
@@ -70,7 +31,7 @@ const AdminLogin: React.FC = () => {
 
       // 3. Valida se o usuário logado é realmente o administrador
       if (!isUserAdmin(data.user)) {
-        await supabase.auth.signOut();
+        await supabase.auth.signOut({ scope: 'local' });
         setError('Acesso negado: Este e-mail não possui permissão de administrador.');
         setLoading(false);
         return;
@@ -83,12 +44,6 @@ const AdminLogin: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleFillCredentials = () => {
-    setEmail(ADMIN_EMAIL);
-    setPassword('Ruiz@166123');
-    setError('');
   };
 
   return (
@@ -109,18 +64,8 @@ const AdminLogin: React.FC = () => {
           </div>
         </div>
 
-        {/* Quick Fill Button */}
-        <button
-          type="button"
-          onClick={handleFillCredentials}
-          className="w-full py-2 px-3 rounded-xl bg-blue-600/10 border border-blue-500/30 text-blue-300 hover:bg-blue-600/20 text-xs font-semibold flex items-center justify-center gap-2 transition"
-        >
-          <span className="material-symbols-outlined text-sm">key</span>
-          <span>Preencher credenciais de Helder Ruiz</span>
-        </button>
-
         {/* Form */}
-        <form onSubmit={handleAdminLogin} className="space-y-4">
+        <form onSubmit={handleAdminLogin} className="space-y-4" autoComplete="off">
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
               E-mail do Administrador
@@ -134,6 +79,7 @@ const AdminLogin: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autoComplete="off"
                 className="w-full bg-[#070d1e] border border-[#172445] rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition"
                 placeholder="admin@exemplo.com"
               />
@@ -153,6 +99,7 @@ const AdminLogin: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="new-password"
                 className="w-full bg-[#070d1e] border border-[#172445] rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition"
                 placeholder="••••••••"
               />
@@ -167,12 +114,6 @@ const AdminLogin: React.FC = () => {
               </button>
             </div>
           </div>
-
-          {infoMessage && (
-            <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs">
-              {infoMessage}
-            </div>
-          )}
 
           {error && (
             <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-start gap-2">

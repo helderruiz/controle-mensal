@@ -21,33 +21,6 @@ const Login: React.FC = () => {
     });
 
     if (signInError) {
-      // Se for o e-mail do admin e ainda não estiver criado no Supabase, cria automaticamente
-      if (
-        email.trim().toLowerCase() === 'helder.ruiz.marcelino@gmail.com' &&
-        signInError.message === 'Invalid login credentials'
-      ) {
-        const { error: signUpErr } = await supabase.auth.signUp({
-          email: email.trim(),
-          password: pass,
-          options: {
-            data: { full_name: 'Helder Ruiz Marcelino', role: 'admin' },
-          },
-        });
-
-        if (!signUpErr) {
-          // Tenta entrar com a conta recém-criada
-          const { error: retryError } = await supabase.auth.signInWithPassword({
-            email: email.trim(),
-            password: pass,
-          });
-
-          if (!retryError) {
-            setLoading(false);
-            return;
-          }
-        }
-      }
-
       setError(
         signInError.message === 'Invalid login credentials'
           ? 'E-mail ou senha incorretos. Verifique suas credenciais.'

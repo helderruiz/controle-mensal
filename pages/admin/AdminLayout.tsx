@@ -20,7 +20,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    // Encerra todas as sessões admin após a troca de senha/limpeza de acessos antigos.
+    await supabase.auth.signOut({ scope: 'global' });
     navigate('/login');
   };
 
