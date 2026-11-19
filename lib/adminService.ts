@@ -107,7 +107,7 @@ export async function getAdminStats(): Promise<{ stats: AdminStats; isLive: bool
           totalUsers: totalUsersCount,
           activeSubscriptions: subs?.length || 0,
           totalAccesses: (logs?.length || 0) + 600,
-          todayAccesses: (todayLogs.length || 0) + 5,
+          todayAccesses: todayLogs.length,
         },
         isLive: true,
       };
