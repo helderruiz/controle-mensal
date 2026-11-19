@@ -101,7 +101,7 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
     const isAndroidWebView = /;\s*wv\)|\bWebView\b/i.test(navigator.userAgent);
     const copyMessageAsFallback = () => {
       if (!navigator.clipboard?.writeText) {
-        setWhatsAppFeedback('NÃ£o foi possÃ­vel abrir o WhatsApp neste navegador.');
+        setWhatsAppFeedback('Falha ao abrir o WhatsApp neste navegador.');
         setTimeout(() => setWhatsAppFeedback(''), 5000);
         return;
       }
@@ -109,25 +109,15 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
         setWhatsAppFeedback('Mensagem copiada! Abra o WhatsApp e envie a mensagem.');
         setTimeout(() => setWhatsAppFeedback(''), 5000);
       }).catch(() => {
-        setWhatsAppFeedback('NÃ£o foi possÃ­vel abrir o WhatsApp neste navegador.');
+        setWhatsAppFeedback('Falha ao abrir o WhatsApp neste navegador.');
         setTimeout(() => setWhatsAppFeedback(''), 5000);
       });
     };
 
     if (isKodularWebView) {
-      // Usa a API nativa do Kodular para sinalizar o app Android.
-      // O Kodular intercepta via evento "WebViewStringChange" e abre o WhatsApp
-      // pelo Activity Starter, sem navegar o WebView (evita tela branca).
-      try {
-        // Envia a URI diretamente: no Kodular, o evento WebViewStringChanged
-        // pode usar o valor como DataUri do Activity Starter.
-        (window as any).AppInventor.setWebViewString(nativeWhatsAppUrl);
-        setWhatsAppFeedback('Abrindo WhatsApp...');
-        setTimeout(() => setWhatsAppFeedback(''), 3000);
-      } catch {
-        // Fallback: copia mensagem e instrui usuário
-        copyMessageAsFallback();
-      }
+      // Kodular catches this URI in Page Loaded and opens it with Activity Starter.
+      setWhatsAppFeedback('Abrindo WhatsApp...');
+      window.location.href = nativeWhatsAppUrl;
     } else if (isAndroidWebView) {
       // Sem a ponte nativa, window.open pode redirecionar esta mesma janela
       // para whatsapp:// e exibir ERR_UNKNOWN_URL_SCHEME.
