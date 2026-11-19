@@ -6,13 +6,15 @@ export interface SubscriptionConfig {
   blockActive: boolean; // Se o bloqueio do dia 01 está ligado
   stripePaymentLink: string; // URL do Stripe Payment Link
   whatsappSupport: string; // Número de WhatsApp para suporte
+  pixKey?: string; // Chave Pix para pagamento direto
   monthlyPrice: number; // Valor (R$ 4,99)
 }
 
 const DEFAULT_CONFIG: SubscriptionConfig = {
   blockActive: false, // Inicia DESATIVADO por padrão para segurança máxima dos 118 usuários
   stripePaymentLink: 'https://buy.stripe.com/6oUfZh0fccHVbCCgvt4Rq00',
-  whatsappSupport: '5511999999999',
+  whatsappSupport: '5517936261493',
+  pixKey: '17936261493',
   monthlyPrice: 4.99,
 };
 
@@ -34,7 +36,8 @@ export async function getSubscriptionConfig(): Promise<SubscriptionConfig> {
       return {
         blockActive: Boolean(val.block_active),
         stripePaymentLink: val.stripe_link || '',
-        whatsappSupport: val.whatsapp || '',
+        whatsappSupport: val.whatsapp || '5517936261493',
+        pixKey: val.pix_key || '17936261493',
         monthlyPrice: Number(val.price) || 4.99,
       };
     }
@@ -66,6 +69,7 @@ export async function saveSubscriptionConfig(config: SubscriptionConfig): Promis
         block_active: config.blockActive,
         stripe_link: config.stripePaymentLink,
         whatsapp: config.whatsappSupport,
+        pix_key: config.pixKey,
         price: config.monthlyPrice,
       },
       updated_at: new Date().toISOString(),

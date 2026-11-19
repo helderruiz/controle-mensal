@@ -19,6 +19,14 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
   const refreshStatusRef = useRef(onRefreshStatus);
   refreshStatusRef.current = onRefreshStatus;
 
+  const pixKey = config.pixKey || '17936261493';
+
+  const handleCopyPix = () => {
+    navigator.clipboard.writeText(pixKey);
+    setCopiedPix(true);
+    setTimeout(() => setCopiedPix(false), 3000);
+  };
+
   useEffect(() => {
     const refreshWhenReturning = () => {
       if (document.visibilityState === 'visible') void refreshStatusRef.current();
@@ -43,7 +51,7 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
   const handlePaymentClick = () => {
     if (!config.stripePaymentLink || config.stripePaymentLink.trim() === '') {
       alert(
-        'O link do Stripe ainda está sendo configurado pelo administrador. Você pode entrar em contato pelo WhatsApp para liberação imediata!'
+        'O link do Stripe ainda está sendo configurado pelo administrador. Você pode pagar via PIX abaixo para liberação imediata!'
       );
       return;
     }
@@ -58,8 +66,9 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
     setTimeout(() => setChecking(false), 1200);
   };
 
-  const whatsappUrl = `https://wa.me/${config.whatsappSupport.replace(/\D/g, '')}?text=${encodeURIComponent(
-    `Olá Helder! Estou no Controle Mensal e gostaria de ativar minha assinatura de R$ 4,99 para o e-mail: ${user.email}`
+  const rawPhone = (config.whatsappSupport || '5517936261493').replace(/\D/g, '');
+  const whatsappUrl = `https://wa.me/${rawPhone}?text=${encodeURIComponent(
+    `Olá Controle Mensal! Segue o comprovante do pagamento da minha mensalidade de R$ 4,99 para liberação da minha conta.\n\nE-mail cadastrado: ${user.email}`
   )}`;
 
   return (
@@ -125,25 +134,71 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
           </div>
         </div>
 
-        {/* Main Action Buttons */}
+        {/* Main Action Buttons: Cartão Stripe & PIX Direto */}
         <div className="mt-6 space-y-3 relative z-10">
+          {/* Opção 1: Cartão de Crédito via Stripe */}
           <button
             onClick={handlePaymentClick}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-base shadow-xl shadow-blue-600/30 flex items-center justify-center gap-2.5 active:scale-[0.98] transition-all"
+            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm shadow-xl shadow-blue-600/30 flex items-center justify-center gap-2.5 active:scale-[0.98] transition-all"
           >
             <span className="material-symbols-outlined text-xl">credit_card</span>
-            <span>Pagar R$ 4,99 com Stripe</span>
+            <span>Pagar R$ 4,99 no Cartão (Desbloqueio Imediato)</span>
           </button>
 
+          {/* Opção 2: PIX Direto com Copia e Cola + Envio no WhatsApp */}
+          <div className="bg-[#0e1b38] border border-emerald-500/30 rounded-2xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs font-bold text-white uppercase tracking-wider">
+                  Ou Pague com PIX (R$ 4,99)
+                </span>
+              </div>
+              <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                Sem Taxas
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                readOnly
+                value={pixKey}
+                className="w-full bg-[#070d1e] border border-emerald-500/30 rounded-xl px-3 py-2 text-xs font-mono text-emerald-300 select-all focus:outline-none"
+              />
+              <button
+                onClick={handleCopyPix}
+                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1.5 shrink-0 shadow-md shadow-emerald-600/20"
+              >
+                <span className="material-symbols-outlined text-sm">
+                  {copiedPix ? 'check' : 'content_copy'}
+                </span>
+                <span>{copiedPix ? 'Copiado!' : 'Copiar'}</span>
+              </button>
+            </div>
+
+            {/* Botão de Enviar Comprovante no WhatsApp */}
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-2.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm"
+            >
+              <span className="material-symbols-outlined text-base text-emerald-400">send</span>
+              <span>Enviar Comprovante no WhatsApp</span>
+            </a>
+          </div>
+
+          {/* Botão de Verificar Status */}
           <button
             onClick={handleCheckStatus}
             disabled={checking}
-            className="w-full py-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-slate-300 text-xs font-semibold flex items-center justify-center gap-2 transition"
+            className="w-full py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-slate-400 hover:text-slate-200 text-xs font-semibold flex items-center justify-center gap-2 transition"
           >
-            <span className={`material-symbols-outlined text-base ${checking ? 'animate-spin' : ''}`}>
+            <span className={`material-symbols-outlined text-sm ${checking ? 'animate-spin' : ''}`}>
               sync
             </span>
-            <span>{checking ? 'Verificando pagamento...' : 'Já realizei o pagamento / Atualizar'}</span>
+            <span>{checking ? 'Verificando liberação...' : 'Já realizei o pagamento / Atualizar'}</span>
           </button>
         </div>
 
