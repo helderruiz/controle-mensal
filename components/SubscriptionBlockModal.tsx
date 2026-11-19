@@ -17,15 +17,22 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
 }) => {
   const [checking, setChecking] = useState(false);
   const [copiedPix, setCopiedPix] = useState(false);
+  const [copiedSupportNumber, setCopiedSupportNumber] = useState(false);
   const refreshStatusRef = useRef(onRefreshStatus);
   refreshStatusRef.current = onRefreshStatus;
 
-  const pixKey = config.pixKey || '17936261493';
+  const pixKey = config.pixKey || '8c9b8ea3-1550-4159-a2e7-59947cf6a5f4';
 
   const handleCopyPix = () => {
     navigator.clipboard.writeText(pixKey);
     setCopiedPix(true);
     setTimeout(() => setCopiedPix(false), 3000);
+  };
+
+  const handleCopySupportNumber = () => {
+    navigator.clipboard.writeText('17936261493');
+    setCopiedSupportNumber(true);
+    setTimeout(() => setCopiedSupportNumber(false), 3000);
   };
 
   useEffect(() => {
@@ -216,6 +223,24 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
               <span className="material-symbols-outlined text-lg text-emerald-400">send</span>
               <span>Enviar Comprovante no WhatsApp</span>
             </button>
+
+            {/* Número alternativo com 1 clique para copiar caso o app não abra no celular */}
+            <div className="flex items-center justify-between bg-[#070d1e]/90 px-3 py-2 rounded-xl border border-white/5 text-[11px] text-slate-400">
+              <div className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-sm text-emerald-400">phone_iphone</span>
+                <span>WhatsApp: <strong className="text-slate-200">(17) 93626-1493</strong></span>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopySupportNumber}
+                className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition"
+              >
+                <span className="material-symbols-outlined text-xs">
+                  {copiedSupportNumber ? 'check' : 'content_copy'}
+                </span>
+                <span>{copiedSupportNumber ? 'Copiado!' : 'Copiar número'}</span>
+              </button>
+            </div>
 
             {/* Aviso sobre tempo de validação do PIX */}
             <div className="flex items-start gap-2 bg-[#070d1e]/80 p-2.5 rounded-xl border border-white/5 text-[11px] text-slate-400 leading-tight">
