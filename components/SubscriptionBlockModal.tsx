@@ -91,6 +91,7 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
   const rawText = `Olá Controle Mensal! Segue o comprovante do pagamento da minha mensalidade de R$ 4,99 para liberação da minha conta.\n\nE-mail cadastrado: ${user.email}`;
   const encodedText = encodeURIComponent(rawText);
   const whatsappUrl = `https://api.whatsapp.com/send?phone=${rawPhone}&text=${encodedText}`;
+  const nativeWhatsAppUrl = `whatsapp://send?phone=${rawPhone}&text=${encodedText}`;
 
   const handleOpenWhatsApp = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -118,7 +119,7 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
       // O Kodular intercepta via evento "WebViewStringChange" e abre o WhatsApp
       // pelo Activity Starter, sem navegar o WebView (evita tela branca).
       try {
-        (window as any).AppInventor.setWebViewString('OPEN_WHATSAPP:' + whatsappUrl);
+        (window as any).AppInventor.setWebViewString('OPEN_WHATSAPP:' + nativeWhatsAppUrl);
         setWhatsAppFeedback('Abrindo WhatsApp...');
         setTimeout(() => setWhatsAppFeedback(''), 3000);
       } catch {
