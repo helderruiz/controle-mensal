@@ -164,7 +164,20 @@ export async function checkUserMustBeBlocked(user: SupabaseUser | null | undefin
     console.warn('Erro ao verificar subscriptions:', err);
   }
 
-  // 6. REGRA DO DIA 01: Obtém a configuração do sistema
+  // 6. REGRA DE TRIAL DE 30 DIAS PARA NOVOS USUÁRIOS
+  // Todo usuário tem garantido 30 dias de teste grátis a partir da data de criação da sua conta
+  if (user.created_at) {
+    const userCreatedAt = new Date(user.created_at);
+    const trialEndDate = new Date(userCreatedAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const now = new Date();
+
+    // Se ainda está dentro dos 30 dias de trial, acesso 100% liberado!
+    if (now < trialEndDate) {
+      return false;
+    }
+  }
+
+  // 7. REGRA DO DIA 01: Obtém a configuração do sistema (ativa a cobrança geral para contas antigas)
   const config = await getSubscriptionConfig();
 
   // Se a chave geral de bloqueio do dia 01 estiver desligada, permite o acesso dos não-bloqueados
@@ -172,7 +185,7 @@ export async function checkUserMustBeBlocked(user: SupabaseUser | null | undefin
     return false;
   }
 
-  // Se a chave geral do dia 01 está LIGADA e o usuário não possui pagamento para o mês:
+  // Se a chave geral do dia 01 está LIGADA e o usuário já passou do trial de 30 dias e não tem assinatura:
   return true;
 }
 
