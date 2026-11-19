@@ -32,17 +32,29 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
 
 
   useEffect(() => {
+    let lastRefreshAt = 0;
+    let refreshInFlight = false;
     const refreshWhenReturning = () => {
-      if (document.visibilityState === 'visible') void refreshStatusRef.current();
+      if (document.visibilityState !== 'visible' || refreshInFlight) return;
+
+      // Some Android WebViews emit focus and visibilitychange together. Avoid
+      // duplicate requests, and only refresh when the external app returns.
+      const now = Date.now();
+      if (now - lastRefreshAt < 1500) return;
+      lastRefreshAt = now;
+      refreshInFlight = true;
+      Promise.resolve(refreshStatusRef.current())
+        .catch((error) => console.error('Falha ao atualizar assinatura ao retornar:', error))
+        .finally(() => { refreshInFlight = false; });
     };
     window.addEventListener('focus', refreshWhenReturning);
+    window.addEventListener('pageshow', refreshWhenReturning);
     document.addEventListener('visibilitychange', refreshWhenReturning);
-    const interval = window.setInterval(refreshWhenReturning, 5000);
 
     return () => {
       window.removeEventListener('focus', refreshWhenReturning);
+      window.removeEventListener('pageshow', refreshWhenReturning);
       document.removeEventListener('visibilitychange', refreshWhenReturning);
-      window.clearInterval(interval);
     };
   }, []);
 
@@ -66,8 +78,13 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
 
   const handleCheckStatus = async () => {
     setChecking(true);
-    await onRefreshStatus();
-    setTimeout(() => setChecking(false), 1200);
+    try {
+      await onRefreshStatus();
+    } catch (error) {
+      console.error('Falha ao verificar status da assinatura:', error);
+    } finally {
+      setTimeout(() => setChecking(false), 1200);
+    }
   };
 
   const rawPhone = (config.whatsappSupport || '5517936261493').replace(/\D/g, '');
@@ -80,6 +97,21 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
 
     // Detecta se está rodando dentro do Kodular WebView (AppInventor)
     const isKodularWebView = !!(window as any).AppInventor;
+    const isAndroidWebView = /;\s*wv\)|\bWebView\b/i.test(navigator.userAgent);
+    const copyMessageAsFallback = () => {
+      if (!navigator.clipboard?.writeText) {
+        setWhatsAppFeedback('NÃ£o foi possÃ­vel abrir o WhatsApp neste navegador.');
+        setTimeout(() => setWhatsAppFeedback(''), 5000);
+        return;
+      }
+      void navigator.clipboard.writeText(rawText).then(() => {
+        setWhatsAppFeedback('Mensagem copiada! Abra o WhatsApp e envie a mensagem.');
+        setTimeout(() => setWhatsAppFeedback(''), 5000);
+      }).catch(() => {
+        setWhatsAppFeedback('NÃ£o foi possÃ­vel abrir o WhatsApp neste navegador.');
+        setTimeout(() => setWhatsAppFeedback(''), 5000);
+      });
+    };
 
     if (isKodularWebView) {
       // Usa a API nativa do Kodular para sinalizar o app Android.
@@ -91,12 +123,12 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
         setTimeout(() => setWhatsAppFeedback(''), 3000);
       } catch {
         // Fallback: copia mensagem e instrui usuário
-        const msgParaCopiar = rawText;
-        navigator.clipboard.writeText(msgParaCopiar).then(() => {
-          setWhatsAppFeedback('Mensagem copiada! Abra o WhatsApp e envie para (17) 93626-1493');
-          setTimeout(() => setWhatsAppFeedback(''), 5000);
-        });
+        copyMessageAsFallback();
       }
+    } else if (isAndroidWebView) {
+      // Sem a ponte nativa, window.open pode redirecionar esta mesma janela
+      // para whatsapp:// e exibir ERR_UNKNOWN_URL_SCHEME.
+      copyMessageAsFallback();
     } else {
       // Navegador normal (desktop/mobile): abre em nova aba
       window.open(whatsappUrl, '_blank');

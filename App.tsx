@@ -52,12 +52,21 @@ const App: React.FC = () => {
       setShowNoticeModal(false);
       return;
     }
-    const [cfg, blocked] = await Promise.all([
-      getSubscriptionConfig(),
-      checkUserMustBeBlocked(targetUser),
-    ]);
-    setSubConfig(cfg);
-    setMustBeBlocked(blocked);
+    let blocked: boolean;
+    try {
+      const [cfg, status] = await Promise.all([
+        getSubscriptionConfig(),
+        checkUserMustBeBlocked(targetUser),
+      ]);
+      setSubConfig(cfg);
+      blocked = status;
+      setMustBeBlocked(status);
+    } catch (error) {
+      // A temporary network failure while returning from WhatsApp must not
+      // leave the WebView with an unhandled rejection or disturb its current route.
+      console.error('Falha ao verificar status da assinatura:', error);
+      return;
+    }
 
     // Se o usuário não estiver bloqueado, checa se já viu o aviso prévio amigável de cobrança
     if (!blocked) {
