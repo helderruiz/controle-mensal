@@ -85,10 +85,7 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
   const handleOpenWhatsApp = (e: React.MouseEvent) => {
     e.preventDefault();
 
-    // No WebView do Kodular, se fizermos window.location = 'whatsapp://...' diretamente,
-    // o WebView tenta renderizar e joga a tela branca ERR_UNKNOWN_URL_SCHEME.
-    // Usando um iframe invisível descartável ou window.open seguro, o sistema operacional Android
-    // intercepta a chamada sem destruir a página atual do app!
+    // Dispara via iframe invisível para o Android abrir o app do WhatsApp
     try {
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
@@ -98,23 +95,14 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
         try {
           document.body.removeChild(iframe);
         } catch {}
-      }, 2000);
+      }, 1500);
     } catch {}
 
-    // Fallback: abre em janela externa sem navegar a tela principal
-    try {
-      const a = document.createElement('a');
-      a.href = universalWebUrl;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        try {
-          document.body.removeChild(a);
-        } catch {}
-      }, 1000);
-    } catch {}
+    // No desktop/iOS ou se não abrir, usa window.open com noopener (sem criar tag <a> que força navegação no WebView)
+    const isMobileAndroid = /android/i.test(navigator.userAgent || '');
+    if (!isMobileAndroid) {
+      window.open(universalWebUrl, '_blank', 'noopener,noreferrer');
+    }
   };
 
   return (
