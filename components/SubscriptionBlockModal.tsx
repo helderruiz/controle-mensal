@@ -119,7 +119,9 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
       // O Kodular intercepta via evento "WebViewStringChange" e abre o WhatsApp
       // pelo Activity Starter, sem navegar o WebView (evita tela branca).
       try {
-        (window as any).AppInventor.setWebViewString('OPEN_WHATSAPP:' + nativeWhatsAppUrl);
+        // Envia a URI diretamente: no Kodular, o evento WebViewStringChanged
+        // pode usar o valor como DataUri do Activity Starter.
+        (window as any).AppInventor.setWebViewString(nativeWhatsAppUrl);
         setWhatsAppFeedback('Abrindo WhatsApp...');
         setTimeout(() => setWhatsAppFeedback(''), 3000);
       } catch {
