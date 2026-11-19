@@ -85,23 +85,13 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
   const handleOpenWhatsApp = (e: React.MouseEvent) => {
     e.preventDefault();
 
-    // Dispara via iframe invisível para o Android abrir o app do WhatsApp
+    // No Android / WebView, usamos window.open com a URL universal do WhatsApp.
+    // O sistema operacional Android intercepta essa URL e abre diretamente o app do WhatsApp
+    // sem trocar a página do WebView e sem causar erro de tela branca!
     try {
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.src = directSchemeUrl;
-      document.body.appendChild(iframe);
-      setTimeout(() => {
-        try {
-          document.body.removeChild(iframe);
-        } catch {}
-      }, 1500);
-    } catch {}
-
-    // No desktop/iOS ou se não abrir, usa window.open com noopener (sem criar tag <a> que força navegação no WebView)
-    const isMobileAndroid = /android/i.test(navigator.userAgent || '');
-    if (!isMobileAndroid) {
-      window.open(universalWebUrl, '_blank', 'noopener,noreferrer');
+      window.open(universalWebUrl, '_system');
+    } catch {
+      window.open(universalWebUrl, '_blank');
     }
   };
 
