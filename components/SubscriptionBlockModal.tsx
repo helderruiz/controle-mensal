@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { SubscriptionConfig, buildStripeCheckoutUrl } from '../lib/subscriptionService';
+import pixLogo from '../img/pix-logo.png';
 
 interface SubscriptionBlockModalProps {
   user: SupabaseUser;
@@ -67,9 +68,21 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
   };
 
   const rawPhone = (config.whatsappSupport || '5517936261493').replace(/\D/g, '');
-  const whatsappUrl = `https://wa.me/${rawPhone}?text=${encodeURIComponent(
+  const encodedText = encodeURIComponent(
     `Olá Controle Mensal! Segue o comprovante do pagamento da minha mensalidade de R$ 4,99 para liberação da minha conta.\n\nE-mail cadastrado: ${user.email}`
-  )}`;
+  );
+  const whatsappUrl = `https://api.whatsapp.com/send?phone=${rawPhone}&text=${encodedText}`;
+
+  const handleOpenWhatsApp = (e: React.MouseEvent) => {
+    e.preventDefault();
+    // No Kodular / Webview, window.open com _blank ou esquemas personalizados falham com net::ERR_UNKNOWN_URL_SCHEME.
+    // Usando api.whatsapp.com diretamente e navegando a janela, o Android intercepta e abre o app do WhatsApp de forma limpa.
+    try {
+      window.location.href = whatsappUrl;
+    } catch {
+      window.open(whatsappUrl, '_system');
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
@@ -139,22 +152,26 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
           {/* Opção 1: Cartão de Crédito via Stripe */}
           <button
             onClick={handlePaymentClick}
-            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm shadow-xl shadow-blue-600/30 flex items-center justify-center gap-2.5 active:scale-[0.98] transition-all"
+            className="w-full py-4 px-4 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm sm:text-base shadow-xl shadow-blue-600/30 flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
           >
-            <span className="material-symbols-outlined text-xl">credit_card</span>
-            <span>Pagar R$ 4,99 no Cartão (Desbloqueio Imediato)</span>
+            <span className="material-symbols-outlined text-2xl shrink-0">credit_card</span>
+            <span className="leading-tight text-center">Pagar R$ 4,99 no Cartão (Desbloqueio Imediato)</span>
           </button>
 
           {/* Opção 2: PIX Direto com Copia e Cola + Envio no WhatsApp */}
-          <div className="bg-[#0e1b38] border border-emerald-500/30 rounded-2xl p-4 space-y-3">
+          <div className="bg-[#0e1b38] border border-emerald-500/30 rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-md">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs font-bold text-white uppercase tracking-wider">
-                  Ou Pague com PIX (R$ 4,99)
+              <div className="flex items-center gap-2.5">
+                <img
+                  src={pixLogo}
+                  alt="Logo PIX"
+                  className="h-6 w-auto object-contain filter brightness-110"
+                />
+                <span className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider">
+                  Pague com PIX (R$ 4,99)
                 </span>
               </div>
-              <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+              <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
                 Sem Taxas
               </span>
             </div>
@@ -164,29 +181,27 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
                 type="text"
                 readOnly
                 value={pixKey}
-                className="w-full bg-[#070d1e] border border-emerald-500/30 rounded-xl px-3 py-2 text-xs font-mono text-emerald-300 select-all focus:outline-none"
+                className="w-full bg-[#070d1e] border border-emerald-500/30 rounded-xl px-3 py-2.5 text-xs font-mono text-emerald-300 select-all focus:outline-none truncate"
               />
               <button
                 onClick={handleCopyPix}
-                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1.5 shrink-0 shadow-md shadow-emerald-600/20"
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1.5 shrink-0 shadow-md shadow-emerald-600/20 active:scale-95"
               >
-                <span className="material-symbols-outlined text-sm">
+                <span className="material-symbols-outlined text-base">
                   {copiedPix ? 'check' : 'content_copy'}
                 </span>
                 <span>{copiedPix ? 'Copiado!' : 'Copiar'}</span>
               </button>
             </div>
 
-            {/* Botão de Enviar Comprovante no WhatsApp */}
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full py-2.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm"
+            {/* Botão de Enviar Comprovante no WhatsApp (Compatível com Kodular Webview) */}
+            <button
+              onClick={handleOpenWhatsApp}
+              className="w-full py-3 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 shadow-sm active:scale-[0.99]"
             >
-              <span className="material-symbols-outlined text-base text-emerald-400">send</span>
+              <span className="material-symbols-outlined text-lg text-emerald-400">send</span>
               <span>Enviar Comprovante no WhatsApp</span>
-            </a>
+            </button>
 
             {/* Aviso sobre tempo de validação do PIX */}
             <div className="flex items-start gap-2 bg-[#070d1e]/80 p-2.5 rounded-xl border border-white/5 text-[11px] text-slate-400 leading-tight">
@@ -214,15 +229,13 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
 
         {/* Support & Logout footer */}
         <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-slate-400 relative z-10">
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-emerald-400 transition flex items-center gap-1"
+          <button
+            onClick={handleOpenWhatsApp}
+            className="hover:text-emerald-400 transition flex items-center gap-1.5"
           >
             <span className="material-symbols-outlined text-sm text-emerald-400">chat</span>
             <span>Dúvidas? WhatsApp</span>
-          </a>
+          </button>
 
           <button
             onClick={handleLogout}
