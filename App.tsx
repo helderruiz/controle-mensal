@@ -18,6 +18,7 @@ import AdminSubscriptions from './pages/admin/AdminSubscriptions';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminGuard from './pages/admin/AdminGuard';
 import SubscriptionBlockModal from './components/SubscriptionBlockModal';
+import SubscriptionNoticeModal from './components/SubscriptionNoticeModal';
 import { recordAccessLog } from './lib/accessLogger';
 import {
   checkUserMustBeBlocked,
@@ -36,6 +37,7 @@ const App: React.FC = () => {
 
   // Controle de Bloqueio por Assinatura (Dia 01)
   const [mustBeBlocked, setMustBeBlocked] = useState(false);
+  const [showNoticeModal, setShowNoticeModal] = useState(false);
   const [subConfig, setSubConfig] = useState<SubscriptionConfig>({
     blockActive: false,
     stripePaymentLink: 'https://buy.stripe.com/6oUfZh0fccHVbCCgvt4Rq00',
@@ -47,6 +49,7 @@ const App: React.FC = () => {
     const targetUser = user || (session ? (session as Session).user : null);
     if (!targetUser) {
       setMustBeBlocked(false);
+      setShowNoticeModal(false);
       return;
     }
     const [cfg, blocked] = await Promise.all([
@@ -55,6 +58,16 @@ const App: React.FC = () => {
     ]);
     setSubConfig(cfg);
     setMustBeBlocked(blocked);
+
+    // Se o usuário não estiver bloqueado, checa se já viu o aviso prévio amigável de cobrança
+    if (!blocked) {
+      try {
+        const seenNotice = localStorage.getItem(`cm_sub_notice_seen_${targetUser.id}`);
+        if (!seenNotice) {
+          setShowNoticeModal(true);
+        }
+      } catch {}
+    }
   };
 
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
@@ -224,6 +237,19 @@ const App: React.FC = () => {
           user={session.user}
           config={subConfig}
           onRefreshStatus={() => verifySubscriptionStatus(session.user)}
+        />
+      )}
+
+      {/* Aviso Prévio Amigável de Assinatura (Aparece 1 única vez para cada usuário não bloqueado) */}
+      {!mustBeBlocked && showNoticeModal && session && session.user && (
+        <SubscriptionNoticeModal
+          user={session.user}
+          onDismiss={() => {
+            setShowNoticeModal(false);
+            try {
+              localStorage.setItem(`cm_sub_notice_seen_${session.user.id}`, 'true');
+            } catch {}
+          }}
         />
       )}
     </>
