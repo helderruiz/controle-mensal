@@ -97,7 +97,9 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
     e.preventDefault();
 
     // Detecta se está rodando dentro do Kodular WebView (AppInventor)
-    const isKodularWebView = !!(window as any).AppInventor;
+    // Kodular exposes window.Kodular; App Inventor uses window.AppInventor.
+    const nativeBridge = (window as any).Kodular || (window as any).AppInventor;
+    const isKodularWebView = typeof nativeBridge?.setWebViewString === 'function';
     const isAndroidWebView = /;\s*wv\)|\bWebView\b/i.test(navigator.userAgent);
     const copyMessageAsFallback = () => {
       if (!navigator.clipboard?.writeText) {
@@ -117,7 +119,7 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
     if (isKodularWebView) {
       // The Kodular WebViewStringChanged event starts WhatsApp through Activity Starter.
       setWhatsAppFeedback('Abrindo WhatsApp...');
-      (window as any).AppInventor.setWebViewString(nativeWhatsAppUrl);
+      nativeBridge.setWebViewString(nativeWhatsAppUrl);
     } else if (isAndroidWebView) {
       // Sem a ponte nativa, window.open pode redirecionar esta mesma janela
       // para whatsapp:// e exibir ERR_UNKNOWN_URL_SCHEME.
