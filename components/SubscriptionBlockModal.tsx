@@ -160,19 +160,14 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
 
           {/* Opção 2: PIX Direto com Copia e Cola + Envio no WhatsApp */}
           <div className="bg-[#0e1b38] border border-emerald-500/30 rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-md">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <img
-                  src={pixLogo}
-                  alt="Logo PIX"
-                  className="h-6 w-auto object-contain filter brightness-110"
-                />
-                <span className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider">
-                  Pague com PIX (R$ 4,99)
-                </span>
-              </div>
-              <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                Sem Taxas
+            <div className="flex items-center gap-3">
+              <img
+                src={pixLogo}
+                alt="Logo PIX"
+                className="h-8 w-auto object-contain filter brightness-110"
+              />
+              <span className="text-sm font-bold text-white uppercase tracking-wider">
+                Pague com PIX (R$ 4,99)
               </span>
             </div>
 
