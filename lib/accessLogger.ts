@@ -1,36 +1,35 @@
 import { supabase } from './supabase';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 
-// Cache em memória para evitar chamadas simultâneas imediatas no mesmo ciclo de render
-const inFlightLog = new Set<string>();
+// Cache em memória para evitar inserções duplicadas no mesmo ciclo de renderização
+const recentLogTimestamps = new Map<string, number>();
 
 /**
  * Registra um evento de "Visita ao Sistema" na tabela access_logs.
- * Limita a 1 registro a cada 30 minutos por usuário usando localStorage.
+ * Evita duplicidade no mesmo minuto (debounce de 60 segundos por sessão).
  */
 export async function recordAccessLog(user: SupabaseUser | null | undefined): Promise<void> {
   if (!user || !user.email) return;
 
-  const storageKey = `cm_access_log_${user.id}`;
   const nowTime = Date.now();
+  const sessionKey = `cm_last_session_log_${user.id}`;
 
-  // 1. Bloqueia se já estiver disparando neste milissegundo (evita duplo trigger do getSession + onAuthStateChange)
-  if (inFlightLog.has(user.id)) {
+  // 1. Previne envio duplicado dentro de 60 segundos na mesma aba/sessão
+  const lastMemory = recentLogTimestamps.get(user.id);
+  if (lastMemory && nowTime - lastMemory < 60 * 1000) {
     return;
   }
 
-  // 2. Bloqueia se já registrou acesso nos últimos 30 minutos (persiste mesmo ao fechar e abrir a aba/app)
   try {
-    const lastLogged = localStorage.getItem(storageKey);
-    if (lastLogged && nowTime - Number(lastLogged) < 30 * 60 * 1000) {
+    const lastSession = sessionStorage.getItem(sessionKey);
+    if (lastSession && nowTime - Number(lastSession) < 60 * 1000) {
       return;
     }
   } catch {}
 
-  inFlightLog.add(user.id);
-  // Atualiza timestamp local imediatamente antes de ir ao banco
+  recentLogTimestamps.set(user.id, nowTime);
   try {
-    localStorage.setItem(storageKey, String(nowTime));
+    sessionStorage.setItem(sessionKey, String(nowTime));
   } catch {}
 
   try {
@@ -50,10 +49,6 @@ export async function recordAccessLog(user: SupabaseUser | null | undefined): Pr
     ]);
   } catch {
     // Falha silenciosa
-  } finally {
-    setTimeout(() => {
-      inFlightLog.delete(user.id);
-    }, 5000);
   }
 }
 
