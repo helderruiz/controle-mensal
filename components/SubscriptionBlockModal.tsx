@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { SubscriptionConfig, buildStripeCheckoutUrl } from '../lib/subscriptionService';
@@ -16,6 +16,23 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
 }) => {
   const [checking, setChecking] = useState(false);
   const [copiedPix, setCopiedPix] = useState(false);
+  const refreshStatusRef = useRef(onRefreshStatus);
+  refreshStatusRef.current = onRefreshStatus;
+
+  useEffect(() => {
+    const refreshWhenReturning = () => {
+      if (document.visibilityState === 'visible') void refreshStatusRef.current();
+    };
+    window.addEventListener('focus', refreshWhenReturning);
+    document.addEventListener('visibilitychange', refreshWhenReturning);
+    const interval = window.setInterval(refreshWhenReturning, 5000);
+
+    return () => {
+      window.removeEventListener('focus', refreshWhenReturning);
+      document.removeEventListener('visibilitychange', refreshWhenReturning);
+      window.clearInterval(interval);
+    };
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

@@ -22,7 +22,6 @@ import { recordAccessLog } from './lib/accessLogger';
 import {
   checkUserMustBeBlocked,
   getSubscriptionConfig,
-  activateUserSubscription,
   SubscriptionConfig,
 } from './lib/subscriptionService';
 import { Transaction, TransactionType, TransactionCategory } from './types';
@@ -87,22 +86,30 @@ const App: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Detecta retorno de pagamento do Stripe (?payment=success)
+  // O retorno do Stripe só confirma que o checkout terminou. A liberação deve
+  // vir de uma confirmação confiável do servidor (webhook), nunca do navegador.
   useEffect(() => {
-    if (window.location.href.includes('payment=success') && session && session.user) {
-      activateUserSubscription(
-        session.user.id,
-        session.user.email || '',
-        session.user.user_metadata?.full_name || 'Usuário',
-        30
-      ).then(() => {
-        setMustBeBlocked(false);
-        verifySubscriptionStatus(session.user);
-        const cleanUrl = window.location.href.replace('payment=success', '').replace(/[?&]$/, '');
-        window.history.replaceState({}, document.title, cleanUrl);
-        alert('🎉 Pagamento confirmado com sucesso! Sua assinatura de R$ 4,99 foi ativada e seu acesso está liberado por 30 dias.');
-      });
-    }
+    if (!session || !session.user) return;
+
+    const currentUrl = new URL(window.location.href);
+    const hashQuery = currentUrl.hash.includes('?')
+      ? new URLSearchParams(currentUrl.hash.slice(currentUrl.hash.indexOf('?') + 1))
+      : new URLSearchParams();
+    const paymentStatus = currentUrl.searchParams.get('payment') || hashQuery.get('payment');
+    if (paymentStatus !== 'success') return;
+
+    void (async () => {
+      await verifySubscriptionStatus(session.user);
+      currentUrl.searchParams.delete('payment');
+      if (currentUrl.hash.includes('?')) {
+        const [route, query] = currentUrl.hash.split('?');
+        const params = new URLSearchParams(query);
+        params.delete('payment');
+        currentUrl.hash = params.size ? `${route}?${params}` : route;
+      }
+      window.history.replaceState({}, document.title, currentUrl.toString());
+      alert('O checkout foi concluído. Estamos aguardando a confirmação segura do pagamento. Se o acesso continuar bloqueado após alguns instantes, use “Já realizei o pagamento / Atualizar” ou contate o suporte.');
+    })();
   }, [session]);
 
   useEffect(() => {

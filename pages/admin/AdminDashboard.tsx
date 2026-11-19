@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../../lib/supabase';
 import {
   getAdminStats,
   getRealtimeActivities,
@@ -21,10 +22,78 @@ const AdminDashboard: React.FC = () => {
 
   useEffect(() => {
     loadData();
+
+    // 1. Ouvir novos logs de acesso em TEMPO REAL via Supabase Realtime
+    const logsChannel = supabase
+      .channel('admin-realtime-logs')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'access_logs' },
+        (payload) => {
+          const newLog = payload.new as any;
+          if (newLog) {
+            const d = new Date(newLog.created_at || new Date());
+            const hours = String(d.getHours()).padStart(2, '0');
+            const minutes = String(d.getMinutes()).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+
+            const formattedItem: AccessActivity = {
+              id: newLog.id || String(Date.now()),
+              action: newLog.action || 'Visita ao Sistema',
+              userName: newLog.user_name || 'Usuário',
+              userEmail: newLog.user_email || '',
+              time: `${hours}:${minutes}`,
+              date: `${day}/${month}/${year}`,
+              timestamp: newLog.created_at || new Date().toISOString(),
+            };
+
+            setActivities((prev) => [formattedItem, ...prev]);
+            setStats((prev) => ({
+              ...prev,
+              totalAccesses: prev.totalAccesses + 1,
+              todayAccesses: prev.todayAccesses + 1,
+            }));
+          }
+        }
+      )
+      .subscribe();
+
+    // 2. Ouvir atualizações de perfis e assinaturas em TEMPO REAL
+    const profilesChannel = supabase
+      .channel('admin-realtime-profiles')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        () => {
+          // Atualiza dados quando um usuário mudar de status
+          getAdminStats().then((res) => setStats(res.stats));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'subscriptions' },
+        () => {
+          getAdminStats().then((res) => setStats(res.stats));
+        }
+      )
+      .subscribe();
+
+    // 3. Atualização periódica a cada 15 segundos
+    const interval = setInterval(() => {
+      loadData(false);
+    }, 15000);
+
+    return () => {
+      supabase.removeChannel(logsChannel);
+      supabase.removeChannel(profilesChannel);
+      clearInterval(interval);
+    };
   }, []);
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     const [statsRes, acts] = await Promise.all([
       getAdminStats(),
       getRealtimeActivities(),
@@ -32,7 +101,7 @@ const AdminDashboard: React.FC = () => {
     setStats(statsRes.stats);
     setIsLive(statsRes.isLive);
     setActivities(acts);
-    setLoading(false);
+    if (showLoading) setLoading(false);
   };
 
   const handleCopySql = () => {

@@ -200,7 +200,7 @@ export async function activateUserSubscription(
     if (!rpcErr) return true;
 
     // 2. Fallback para upsert em profiles
-    await supabase.from('profiles').upsert({
+    const { error: profileError } = await supabase.from('profiles').upsert({
       id: userId,
       email: userEmail,
       full_name: userName,
@@ -211,7 +211,7 @@ export async function activateUserSubscription(
     });
 
     // 3. Fallback para insert em subscriptions
-    await supabase.from('subscriptions').insert([
+    const { error: subscriptionError } = await supabase.from('subscriptions').insert([
       {
         user_id: userId,
         user_name: userName,
@@ -223,6 +223,11 @@ export async function activateUserSubscription(
         current_period_end: expiresAt.toISOString(),
       },
     ]);
+
+    if (profileError || subscriptionError) {
+      console.error('Falha ao gravar assinatura:', profileError || subscriptionError);
+      return false;
+    }
 
     return true;
   } catch (err) {

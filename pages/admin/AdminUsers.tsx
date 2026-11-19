@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../../lib/supabase';
 import {
   getUsersList,
   toggleUserStatus,
@@ -19,15 +20,37 @@ const AdminUsers: React.FC = () => {
 
   useEffect(() => {
     loadUsers();
+
+    // Ouvir alterações em profiles em tempo real (bloqueios, ativações, mudanças de plano)
+    const channel = supabase
+      .channel('admin-realtime-users')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        () => {
+          loadUsers(false);
+        }
+      )
+      .subscribe();
+
+    // Polling a cada 15 segundos
+    const interval = setInterval(() => {
+      loadUsers(false);
+    }, 15000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
   }, [search]);
 
-  const loadUsers = async () => {
-    setLoading(true);
+  const loadUsers = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     const res = await getUsersList(search);
     setUsers(res.users);
     setIsLive(res.isLive);
     setTotalCount(res.totalCount);
-    setLoading(false);
+    if (showLoading) setLoading(false);
   };
 
   const handleCopySql = () => {
