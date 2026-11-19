@@ -78,25 +78,30 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
   const rawText = `Olá Controle Mensal! Segue o comprovante do pagamento da minha mensalidade de R$ 4,99 para liberação da minha conta.\n\nE-mail cadastrado: ${user.email}`;
   const encodedText = encodeURIComponent(rawText);
 
-  // Link Web direto com suporte a Intent Android (Universal para Kodular, PWA e Navegador)
-  // O formato intent:// é o padrão do Android para WebViews abrirem apps nativos sem disparar ERR_UNKNOWN_URL_SCHEME
-  const androidIntentUrl = `intent://send?phone=${rawPhone}&text=${encodedText}#Intent;scheme=whatsapp;package=com.whatsapp;end`;
+  // URLs de disparo
   const universalWebUrl = `https://api.whatsapp.com/send?phone=${rawPhone}&text=${encodedText}`;
+  const directSchemeUrl = `whatsapp://send?phone=${rawPhone}&text=${encodedText}`;
 
   const handleOpenWhatsApp = (e: React.MouseEvent) => {
     e.preventDefault();
 
-    // 1. Tenta abrir via Intent nativo do Android (evita tela branca no WebView do Kodular)
-    const isAndroid = /android/i.test(navigator.userAgent || '');
+    // No WebView do Kodular, se fizermos window.location = 'whatsapp://...' diretamente,
+    // o WebView tenta renderizar e joga a tela branca ERR_UNKNOWN_URL_SCHEME.
+    // Usando um iframe invisível descartável ou window.open seguro, o sistema operacional Android
+    // intercepta a chamada sem destruir a página atual do app!
+    try {
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = directSchemeUrl;
+      document.body.appendChild(iframe);
+      setTimeout(() => {
+        try {
+          document.body.removeChild(iframe);
+        } catch {}
+      }, 2000);
+    } catch {}
 
-    if (isAndroid) {
-      try {
-        window.location.href = androidIntentUrl;
-        return;
-      } catch {}
-    }
-
-    // 2. Fallback universal usando window.open ou link direto
+    // Fallback: abre em janela externa sem navegar a tela principal
     try {
       const a = document.createElement('a');
       a.href = universalWebUrl;
@@ -104,10 +109,12 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
       a.rel = 'noopener noreferrer';
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
-    } catch {
-      window.location.href = universalWebUrl;
-    }
+      setTimeout(() => {
+        try {
+          document.body.removeChild(a);
+        } catch {}
+      }, 1000);
+    } catch {}
   };
 
   return (
