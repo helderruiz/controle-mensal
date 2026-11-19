@@ -187,6 +187,16 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
               <span className="material-symbols-outlined text-base text-emerald-400">send</span>
               <span>Enviar Comprovante no WhatsApp</span>
             </a>
+
+            {/* Aviso sobre tempo de validação do PIX */}
+            <div className="flex items-start gap-2 bg-[#070d1e]/80 p-2.5 rounded-xl border border-white/5 text-[11px] text-slate-400 leading-tight">
+              <span className="material-symbols-outlined text-sm text-amber-400 shrink-0 mt-0.5">
+                schedule
+              </span>
+              <p>
+                Como a validação do PIX é manual, a liberação pode levar alguns minutos até conferirmos a mensagem no WhatsApp. Para liberação imediata em segundos, utilize a opção do Cartão acima.
+              </p>
+            </div>
           </div>
 
           {/* Botão de Verificar Status */}
