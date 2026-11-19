@@ -68,19 +68,38 @@ const SubscriptionBlockModal: React.FC<SubscriptionBlockModalProps> = ({
   };
 
   const rawPhone = (config.whatsappSupport || '5517936261493').replace(/\D/g, '');
-  const encodedText = encodeURIComponent(
-    `Olá Controle Mensal! Segue o comprovante do pagamento da minha mensalidade de R$ 4,99 para liberação da minha conta.\n\nE-mail cadastrado: ${user.email}`
-  );
-  const whatsappUrl = `https://api.whatsapp.com/send?phone=${rawPhone}&text=${encodedText}`;
+  const rawText = `Olá Controle Mensal! Segue o comprovante do pagamento da minha mensalidade de R$ 4,99 para liberação da minha conta.\n\nE-mail cadastrado: ${user.email}`;
+  const encodedText = encodeURIComponent(rawText);
+
+  // Link Web direto com suporte a Intent Android (Universal para Kodular, PWA e Navegador)
+  // O formato intent:// é o padrão do Android para WebViews abrirem apps nativos sem disparar ERR_UNKNOWN_URL_SCHEME
+  const androidIntentUrl = `intent://send?phone=${rawPhone}&text=${encodedText}#Intent;scheme=whatsapp;package=com.whatsapp;end`;
+  const universalWebUrl = `https://api.whatsapp.com/send?phone=${rawPhone}&text=${encodedText}`;
 
   const handleOpenWhatsApp = (e: React.MouseEvent) => {
     e.preventDefault();
-    // No Kodular / Webview, window.open com _blank ou esquemas personalizados falham com net::ERR_UNKNOWN_URL_SCHEME.
-    // Usando api.whatsapp.com diretamente e navegando a janela, o Android intercepta e abre o app do WhatsApp de forma limpa.
+
+    // 1. Tenta abrir via Intent nativo do Android (evita tela branca no WebView do Kodular)
+    const isAndroid = /android/i.test(navigator.userAgent || '');
+
+    if (isAndroid) {
+      try {
+        window.location.href = androidIntentUrl;
+        return;
+      } catch {}
+    }
+
+    // 2. Fallback universal usando window.open ou link direto
     try {
-      window.location.href = whatsappUrl;
+      const a = document.createElement('a');
+      a.href = universalWebUrl;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     } catch {
-      window.open(whatsappUrl, '_system');
+      window.location.href = universalWebUrl;
     }
   };
 
