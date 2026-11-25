@@ -139,6 +139,9 @@ const Reports: React.FC<ReportsProps> = ({ transactions }) => {
     ? `${MONTH_NAMES[currentDate.getMonth()]} de ${currentDate.getFullYear()}`
     : `Ano de ${currentDate.getFullYear()}`;
 
+  // Lista de saídas do período selecionado
+  const currentPeriodExits = isMonthly ? monthlyData.exits : annualData.exits;
+
   const handleShareReportWhatsApp = () => {
     const topCategories = categoryData
       .slice(0, 4)
