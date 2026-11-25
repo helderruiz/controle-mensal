@@ -7,6 +7,7 @@ import {
 import { Transaction, TransactionType } from '../types';
 import { COLORS, CATEGORY_ICONS, CATEGORY_COLORS } from '../constants';
 import { formatBRL, filterByMonth, parseDateSafe, getCustomCategoryEmoji } from '../utils';
+import { printFinancialReport, shareReportWhatsApp } from '../utils/reportExport';
 
 interface ReportsProps {
   transactions: Transaction[];
@@ -214,6 +215,45 @@ const Reports: React.FC<ReportsProps> = ({ transactions }) => {
               R$ {formatBRL(balance)}
             </p>
           </div>
+        </div>
+
+        {/* Botões de Ação: Exportar PDF e WhatsApp */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() =>
+              printFinancialReport({
+                periodLabel,
+                totalEntries,
+                totalExits,
+                balance,
+                categories: categoryData,
+                isMonthly,
+              })
+            }
+            className="flex-1 py-2.5 px-3 rounded-2xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all"
+          >
+            <span className="material-symbols-outlined text-base text-rose-500">picture_as_pdf</span>
+            <span>Exportar PDF</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              shareReportWhatsApp({
+                periodLabel,
+                totalEntries,
+                totalExits,
+                balance,
+                categories: categoryData,
+                isMonthly,
+              })
+            }
+            className="flex-1 py-2.5 px-3 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold text-xs flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all"
+          >
+            <span className="material-symbols-outlined text-base text-emerald-500">share</span>
+            <span>WhatsApp</span>
+          </button>
         </div>
 
         {/* Gráfico de Pizza — distribuição por categoria */}

@@ -4,6 +4,7 @@ import { Transaction, TransactionType } from '../types';
 import { filterByMonth, formatBRL, formatDateToYYYYMMDD, parseDateSafe } from '../utils';
 import SummaryCard from '../components/SummaryCard';
 import TransactionItem from '../components/TransactionItem';
+import MonthlyGoalCard from '../components/MonthlyGoalCard';
 
 interface DashboardProps {
   transactions: Transaction[];
@@ -112,11 +113,12 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, deleteTransaction }
         </div>
       </header>
 
-      <div className="px-4 -mt-12">
+      <div className="px-4 -mt-12 space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <SummaryCard label="Entradas" value={entries} color="text-emerald-600 dark:text-emerald-400" icon="trending_up" />
           <SummaryCard label="Saídas" value={exits} color="text-rose-600 dark:text-rose-400" icon="trending_down" />
         </div>
+        <MonthlyGoalCard currentDate={currentDate} balance={balance} />
       </div>
 
       <section className="mt-8 px-6">

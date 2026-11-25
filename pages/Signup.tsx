@@ -1,12 +1,14 @@
 
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import FormField from '../components/FormField';
 import { ADMIN_EMAIL } from '../lib/adminService';
 
 const Signup: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const refCode = searchParams.get('ref') || '';
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
@@ -33,7 +35,10 @@ const Signup: React.FC = () => {
       email,
       password: pass,
       options: {
-        data: { full_name: name },
+        data: { 
+          full_name: name,
+          referred_by: refCode || undefined
+        },
       },
     });
 
@@ -64,6 +69,12 @@ const Signup: React.FC = () => {
         </button>
         <h1 className="text-3xl font-bold font-display">Criar Conta</h1>
         <p className="text-slate-500 mt-1">Comece a gerenciar suas finanças hoje mesmo.</p>
+        {refCode && (
+          <div className="mt-3 inline-flex items-center gap-1.5 bg-purple-500/10 border border-purple-500/30 text-purple-600 dark:text-purple-400 px-3 py-1.5 rounded-full text-xs font-semibold">
+            <span className="material-symbols-outlined text-sm">card_giftcard</span>
+            <span>Convite aplicado! 30 dias grátis de acesso.</span>
+          </div>
+        )}
       </header>
 
       <main className="flex-1 px-8 pb-12">

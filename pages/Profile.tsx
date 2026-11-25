@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { isUserAdmin } from '../lib/adminService';
+import ReferralCard from '../components/ReferralCard';
 
 interface ProfileProps {
   session: Session;
@@ -39,7 +40,7 @@ const Profile: React.FC<ProfileProps> = ({ session }) => {
       </div>
 
       <div className="flex-1 px-4 mt-8 space-y-4">
-        {/* Card de informações */}
+        {/* Card de Informações */}
         <div className="bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-sm border border-slate-100 dark:border-white/5">
           <div className="px-6 py-4 border-b border-slate-100 dark:border-white/5">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Conta</p>
@@ -54,6 +55,9 @@ const Profile: React.FC<ProfileProps> = ({ session }) => {
             </div>
           </div>
         </div>
+
+        {/* Card do Programa de Indicação */}
+        <ReferralCard user={user} />
 
         {/* Card de Acesso ao Painel Admin (Visível apenas para Helder / Administrador) */}
         {isUserAdmin(user) && (
