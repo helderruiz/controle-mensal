@@ -9,7 +9,7 @@ interface SummaryCardProps {
 }
 
 const SummaryCard: React.FC<SummaryCardProps> = ({ label, value, color, icon }) => (
-  <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-md border border-slate-100 dark:border-slate-700 flex flex-col items-center">
+  <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-[0_4px_14px_rgba(37,72,150,0.08)] border border-blue-100/80 dark:border-slate-700 flex flex-col items-center">
     <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${color.replace('text-', 'bg-').replace('600', '50').replace('400', '900/20')}`}>
       <span className={`material-symbols-outlined text-sm ${color}`}>{icon}</span>
     </div>

@@ -3,9 +3,9 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-primary: #1E40AF;
-  --color-background-light: #F9FAFB;
-  --color-background-dark: #111827;
+  --color-primary: #3158C8;
+  --color-background-light: #F3F6FC;
+  --color-background-dark: #0D1525;
   
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Manrope", ui-sans-serif, system-ui, sans-serif;
@@ -14,11 +14,18 @@
 @layer base {
   body {
     @apply font-sans;
+    background-color: var(--color-background-light);
+    color: #172033;
+  }
+
+  .dark body {
+    background-color: var(--color-background-dark);
+    color: #E5EAF4;
   }
 }
 
 .ios-gradient {
-    background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%);
+    background: linear-gradient(135deg, #2446A5 0%, #3F6FE0 100%);
 }
 
 .hide-scrollbar::-webkit-scrollbar {
