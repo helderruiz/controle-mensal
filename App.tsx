@@ -203,6 +203,34 @@ const App: React.FC = () => {
     );
   }
 
+  // Revalida o bloqueio manual enquanto a sessÃ£o estiver aberta. Sem isso,
+  // a verificaÃ§Ã£o feita no login fica desatualizada quando o admin bloqueia
+  // uma conta que jÃ¡ estÃ¡ usando o aplicativo.
+  useEffect(() => {
+    if (!session || !session.user) return;
+
+    const currentSession = session;
+    const userId = currentSession.user.id;
+    const channel = supabase
+      .channel(`profile-status-${userId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` },
+        () => { void verifySubscriptionStatus(currentSession.user); }
+      )
+      .subscribe();
+
+    // Realtime pode estar desabilitado; polling cobre esse caso e reconexÃµes.
+    const interval = window.setInterval(() => {
+      void verifySubscriptionStatus(currentSession.user);
+    }, 15000);
+
+    return () => {
+      window.clearInterval(interval);
+      void supabase.removeChannel(channel);
+    };
+  }, [session]);
+
   const isAuthenticated = session !== false;
 
   return (
