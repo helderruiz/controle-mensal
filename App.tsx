@@ -188,21 +188,6 @@ const App: React.FC = () => {
     }));
   };
 
-  if (session === null) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-900">
-        <div className="flex flex-col items-center gap-6">
-          <img 
-            src={logo} 
-            alt="Logo Controle Financeiro" 
-            className="w-32 h-32 animate-pulse" 
-          />
-          <p className="text-slate-400 text-sm font-medium animate-pulse">Carregando...</p>
-        </div>
-      </div>
-    );
-  }
-
   // Revalida o bloqueio manual enquanto a sessÃ£o estiver aberta. Sem isso,
   // a verificaÃ§Ã£o feita no login fica desatualizada quando o admin bloqueia
   // uma conta que jÃ¡ estÃ¡ usando o aplicativo.
@@ -230,6 +215,21 @@ const App: React.FC = () => {
       void supabase.removeChannel(channel);
     };
   }, [session]);
+
+  if (session === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-900">
+        <div className="flex flex-col items-center gap-6">
+          <img 
+            src={logo} 
+            alt="Logo Controle Financeiro" 
+            className="w-32 h-32 animate-pulse" 
+          />
+          <p className="text-slate-400 text-sm font-medium animate-pulse">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
   const isAuthenticated = session !== false;
 
