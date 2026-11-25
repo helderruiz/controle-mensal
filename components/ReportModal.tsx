@@ -62,7 +62,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data }) => {
             <div className="text-right">
               <span className="text-[10px] font-semibold text-slate-400 block">
                 Gerado em {new Date().toLocaleDateString('pt-BR')}
-              </p>
+              </span>
             </div>
           </div>
 
