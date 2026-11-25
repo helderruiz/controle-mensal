@@ -116,10 +116,24 @@ const Login: React.FC = () => {
                 </svg>
               </button> */}
             </div>
-            <p className="text-sm text-slate-500 font-medium">
-              Não tem uma conta?
-              <Link to="/signup" className="text-primary dark:text-blue-400 font-bold ml-1">Criar conta</Link>
-            </p>
+            <div className="flex w-full flex-col items-center gap-3">
+              <p className="text-sm text-slate-500 font-medium">Não tem uma conta?</p>
+              <Link
+                to="/signup"
+                className="ios-gradient flex w-full items-center justify-center rounded-2xl py-3.5 text-base font-bold text-white shadow-lg shadow-blue-600/20 transition-transform active:scale-[0.98]"
+              >
+                CRIAR CONTA
+              </Link>
+              <a
+                href="https://play.google.com/store/apps/details?id=com.controlemensalhelder.app&pli=1"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Disponível no Google Play"
+                className="mt-1 inline-flex rounded-xl transition-transform hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <img src="/play-store-badge.svg" alt="Disponível no Google Play" className="h-auto w-48" />
+              </a>
+            </div>
 
             <Link
               to="/admin/login"
