@@ -38,8 +38,12 @@ const Login: React.FC = () => {
         <div className="absolute -top-10 -left-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
         <div className="absolute top-20 -right-20 w-60 h-60 bg-white/10 rounded-full blur-3xl"></div>
         <div className="relative z-10 flex flex-col items-center">
-          <div className="w-20 h-20 bg-white rounded-[32px] flex items-center justify-center shadow-2xl shadow-blue-900/40 mb-6">
-            <span className="material-symbols-outlined text-primary text-5xl font-bold">account_balance_wallet</span>
+          <div className="w-20 h-20 bg-white rounded-[32px] flex items-center justify-center shadow-2xl shadow-blue-900/40 mb-6 overflow-hidden">
+            <img
+              src="/img/icone controle financeiro.png"
+              alt="Ícone Controle Financeiro"
+              className="h-full w-full object-contain"
+            />
           </div>
           <h1 className="text-3xl font-bold text-white tracking-tight font-display">Bem-vindo</h1>
           <p className="text-blue-100/80 mt-1 text-sm">Controle suas finanças com facilidade</p>
