@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatBRL } from '../utils';
+import { openSafeWhatsApp } from '../utils/safeWhatsApp';
 
 export interface ReportData {
   periodLabel: string;
@@ -29,9 +30,34 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data }) => {
   const balance = data.balance || 0;
   const periodLabel = data.periodLabel || 'Período';
 
+  const handleShareOnWhatsApp = () => {
+    const topCategories = categories
+      .slice(0, 5)
+      .map((c) => `• ${c.name}: R$ ${formatBRL(c.value)} (${c.count}x)`)
+      .join('\n');
+
+    const text = `📊 *Relatório Financeiro - Controle Mensal*
+🗓️ *Período:* ${periodLabel}
+
+🟢 *Entradas:* R$ ${formatBRL(totalEntries)}
+🔴 *Saídas:* R$ ${formatBRL(totalExits)}
+💰 *Saldo Líquido:* R$ ${formatBRL(balance)}
+
+${categories.length > 0 ? `*Detalhamento de Gastos:*\n${topCategories}\n` : ''}
+_Gerado pelo aplicativo Controle Mensal_`;
+
+    openSafeWhatsApp({
+      text,
+      onFeedback: (msg) => {
+        setFeedbackMsg(msg);
+        setTimeout(() => setFeedbackMsg(''), 4000);
+      },
+    });
+  };
+
   const handleDownloadPDF = async () => {
     setDownloading(true);
-    setFeedbackMsg('Preparando PDF...');
+    setFeedbackMsg('Gerando PDF...');
 
     try {
       const doc = new jsPDF({
@@ -156,7 +182,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data }) => {
 
       const nomeArquivo = `Relatorio_Controle_Mensal_${periodLabel.replace(/\s+/g, '_')}.pdf`;
 
-      // 1. Tenta compartilhamento nativo de arquivo (Android moderno / WebView)
+      // 1. Tenta Web Share API de arquivo se suportado
       try {
         const pdfBlob = doc.output('blob');
         const pdfFile = new File([pdfBlob], nomeArquivo, { type: 'application/pdf' });
@@ -166,7 +192,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data }) => {
             title: 'Relatório Financeiro',
             text: `Relatório Controle Mensal - ${periodLabel}`,
           });
-          setFeedbackMsg('Relatório compartilhado!');
+          setFeedbackMsg('Relatório compartilhado com sucesso!');
           setTimeout(() => setFeedbackMsg(''), 4000);
           setDownloading(false);
           return;
@@ -175,23 +201,27 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data }) => {
         console.warn('Share API não utilizada, usando fallback:', shareErr);
       }
 
-      // 2. Download via Data URL direto (compatível com WebView do Android sem DownloadManager)
+      // 2. Download via <a> com Blob URL
       try {
-        const dataUri = doc.output('datauristring');
+        const pdfBlob = doc.output('blob');
+        const blobUrl = URL.createObjectURL(pdfBlob);
         const downloadLink = document.createElement('a');
-        downloadLink.href = dataUri;
+        downloadLink.href = blobUrl;
         downloadLink.download = nomeArquivo;
         downloadLink.target = '_blank';
         document.body.appendChild(downloadLink);
         downloadLink.click();
-        document.body.removeChild(downloadLink);
-        setFeedbackMsg('Download iniciado com sucesso!');
-        setTimeout(() => setFeedbackMsg(''), 4000);
-      } catch {
-        // 3. Fallback clássico doc.save
-        doc.save(nomeArquivo);
-      }
+        setTimeout(() => {
+          document.body.removeChild(downloadLink);
+          URL.revokeObjectURL(blobUrl);
+        }, 1000);
+      } catch {}
 
+      // 3. Fallback clássico doc.save
+      doc.save(nomeArquivo);
+
+      setFeedbackMsg('Se o download não salvar direto no app, use "Enviar no WhatsApp"');
+      setTimeout(() => setFeedbackMsg(''), 6000);
       setDownloading(false);
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
@@ -204,31 +234,44 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data }) => {
   return (
     <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-sm flex flex-col justify-start overflow-y-auto animate-fadeIn">
       {/* Barra de Ações Superior (fixa) */}
-      <div className="sticky top-0 z-50 bg-slate-900 border-b border-white/10 px-4 py-3 flex items-center justify-between shadow-xl">
+      <div className="sticky top-0 z-50 bg-slate-900 border-b border-white/10 px-4 py-3 flex items-center justify-between shadow-xl gap-2">
         <button
           type="button"
           onClick={onClose}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition active:scale-95"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition active:scale-95 shrink-0"
         >
           <span className="material-symbols-outlined text-base">arrow_back</span>
           <span>Voltar</span>
         </button>
 
-        <button
-          type="button"
-          onClick={handleDownloadPDF}
-          disabled={downloading}
-          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary hover:bg-blue-600 text-white font-bold text-xs shadow-lg shadow-blue-500/30 transition active:scale-95 disabled:opacity-70"
-        >
-          <span className="material-symbols-outlined text-base">
-            {downloading ? 'downloading' : 'download'}
-          </span>
-          <span>{downloading ? 'Gerando...' : 'Salvar em PDF'}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Botão Enviar no WhatsApp (100% funcional no WebView) */}
+          <button
+            type="button"
+            onClick={handleShareOnWhatsApp}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 font-bold text-xs transition active:scale-95"
+          >
+            <span className="material-symbols-outlined text-base text-emerald-400">share</span>
+            <span>WhatsApp</span>
+          </button>
+
+          {/* Botão Salvar em PDF */}
+          <button
+            type="button"
+            onClick={handleDownloadPDF}
+            disabled={downloading}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary hover:bg-blue-600 text-white font-bold text-xs shadow-lg shadow-blue-500/30 transition active:scale-95 disabled:opacity-70"
+          >
+            <span className="material-symbols-outlined text-base">
+              {downloading ? 'downloading' : 'download'}
+            </span>
+            <span>{downloading ? 'Gerando...' : 'Salvar em PDF'}</span>
+          </button>
+        </div>
       </div>
 
       {feedbackMsg && (
-        <div className="sticky top-14 z-50 bg-emerald-600 text-white text-xs font-bold py-2 text-center shadow-md animate-fadeIn">
+        <div className="sticky top-14 z-50 bg-emerald-600 text-white text-xs font-bold py-2 px-4 text-center shadow-md animate-fadeIn">
           {feedbackMsg}
         </div>
       )}
