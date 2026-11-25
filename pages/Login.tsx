@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import FormField from '../components/FormField';
+import walletIcon from '../img/icone controle financeiro.png';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -40,7 +41,7 @@ const Login: React.FC = () => {
         <div className="relative z-10 flex flex-col items-center">
           <div className="w-20 h-20 bg-white rounded-[32px] flex items-center justify-center shadow-2xl shadow-blue-900/40 mb-6 overflow-hidden">
             <img
-              src="/img/icone controle financeiro.png"
+              src={walletIcon}
               alt="Ícone Controle Financeiro"
               className="h-full w-full object-contain"
             />
