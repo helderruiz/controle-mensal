@@ -54,13 +54,14 @@ const App: React.FC = () => {
     }
     let blocked: boolean;
     try {
-      const [cfg, status] = await Promise.all([
-        getSubscriptionConfig(),
-        checkUserMustBeBlocked(targetUser),
-      ]);
-      setSubConfig(cfg);
+      const status = await checkUserMustBeBlocked(targetUser);
       blocked = status;
       setMustBeBlocked(status);
+      try {
+        setSubConfig(await getSubscriptionConfig());
+      } catch (configError) {
+        console.error('Falha ao carregar configuraÃ§Ã£o de assinatura:', configError);
+      }
     } catch (error) {
       // A temporary network failure while returning from WhatsApp must not
       // leave the WebView with an unhandled rejection or disturb its current route.
@@ -139,6 +140,7 @@ const App: React.FC = () => {
   }, [transactions]);
 
   const addTransactions = (newItems: Omit<Transaction, 'id'>[]) => {
+    if (mustBeBlocked) return;
     const preparedItems = newItems.map(t => ({
       ...t,
       id: Math.random().toString(36).substr(2, 9)
@@ -147,6 +149,7 @@ const App: React.FC = () => {
   };
 
   const deleteTransaction = (id: string, deleteSeries?: boolean) => {
+    if (mustBeBlocked) return;
     if (deleteSeries) {
       // Encontrar o groupId da transação
       const target = transactions.find(t => t.id === id);
@@ -162,6 +165,7 @@ const App: React.FC = () => {
   };
 
   const updateTransaction = (id: string, updatedData: Omit<Transaction, 'id'>) => {
+    if (mustBeBlocked) return;
     const target = transactions.find(t => t.id === id);
     const groupKey = target ? getInstallmentGroupKey(target) : undefined;
 

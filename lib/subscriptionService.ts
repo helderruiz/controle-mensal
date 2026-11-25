@@ -98,12 +98,29 @@ export async function checkUserMustBeBlocked(user: SupabaseUser | null | undefin
 
   // 3. PRIORIDADE MÁXIMA: Checa via RPC (SECURITY DEFINER = bypassa RLS sempre)
   try {
+  // O RPC get_admin_users é restrito ao admin. Consulte o perfil do próprio usuário primeiro.
+  try {
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('status')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Falha ao consultar status do perfil:', error.message);
+    } else if (String(profile?.status || '').trim().toLowerCase() === 'bloqueado') {
+      return true;
+    }
+  } catch (err) {
+    console.error('Falha ao consultar bloqueio manual do perfil:', err);
+  }
+
     const { data: rpcUsers, error: rpcErr } = await supabase.rpc('get_admin_users');
     if (!rpcErr && Array.isArray(rpcUsers)) {
       const myProfile = rpcUsers.find((u: any) => u.id === user.id);
       if (myProfile) {
         // Se foi bloqueado manualmente no painel admin, BLOQUEIA NA HORA!
-        if (myProfile.status === 'Bloqueado') {
+        if (String(myProfile.status || '').trim().toLowerCase() === 'bloqueado') {
           return true;
         }
         // Se possui plano mensal pago e ainda dentro da validade, LIBERA!
@@ -129,7 +146,7 @@ export async function checkUserMustBeBlocked(user: SupabaseUser | null | undefin
 
     if (profile) {
       // Se foi bloqueado manualmente no painel admin, BLOQUEIA NA HORA!
-      if (profile.status === 'Bloqueado') {
+      if (String(profile.status || '').trim().toLowerCase() === 'bloqueado') {
         return true;
       }
 
