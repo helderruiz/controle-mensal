@@ -19,6 +19,7 @@ import AdminLogin from './pages/admin/AdminLogin';
 import AdminGuard from './pages/admin/AdminGuard';
 import SubscriptionBlockModal from './components/SubscriptionBlockModal';
 import SubscriptionNoticeModal from './components/SubscriptionNoticeModal';
+import WhatsNewModal from './components/WhatsNewModal';
 import { recordAccessLog } from './lib/accessLogger';
 import {
   checkUserMustBeBlocked,
@@ -38,6 +39,7 @@ const App: React.FC = () => {
   // Controle de Bloqueio por Assinatura (Dia 01)
   const [mustBeBlocked, setMustBeBlocked] = useState(false);
   const [showNoticeModal, setShowNoticeModal] = useState(false);
+  const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [subConfig, setSubConfig] = useState<SubscriptionConfig>({
     blockActive: false,
     blockStartDate: '2026-12-01',
@@ -70,12 +72,18 @@ const App: React.FC = () => {
       return;
     }
 
-    // Se o usuário não estiver bloqueado, checa se já viu o aviso prévio amigável de cobrança
+    // Se o usuário não estiver bloqueado, checa os avisos amigáveis
     if (!blocked) {
       try {
         const seenNotice = localStorage.getItem(`cm_sub_notice_seen_${targetUser.id}`);
         if (!seenNotice) {
           setShowNoticeModal(true);
+        } else {
+          // Se já viu o aviso de cobrança (ou quando fechar), verifica se já viu o modal de novidades
+          const seenWhatsNew = localStorage.getItem(`cm_whats_new_v42_${targetUser.id}`);
+          if (!seenWhatsNew) {
+            setShowWhatsNew(true);
+          }
         }
       } catch {}
     }
@@ -290,6 +298,24 @@ const App: React.FC = () => {
             setShowNoticeModal(false);
             try {
               localStorage.setItem(`cm_sub_notice_seen_${session.user.id}`, 'true');
+              // Ao fechar o aviso prévio, checa se precisa exibir as novidades
+              const seenWhatsNew = localStorage.getItem(`cm_whats_new_v42_${session.user.id}`);
+              if (!seenWhatsNew) {
+                setShowWhatsNew(true);
+              }
+            } catch {}
+          }}
+        />
+      )}
+
+      {/* Pop-up de Novidades da Versão 4.2 (Aparece 1 única vez por usuário) */}
+      {!mustBeBlocked && !showNoticeModal && showWhatsNew && session && session.user && (
+        <WhatsNewModal
+          isOpen={showWhatsNew}
+          onClose={() => {
+            setShowWhatsNew(false);
+            try {
+              localStorage.setItem(`cm_whats_new_v42_${session.user.id}`, 'true');
             } catch {}
           }}
         />
