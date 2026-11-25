@@ -561,19 +561,21 @@ _Gerado pelo app Controle Mensal_`;
         </div>
       )}
 
-      {/* Modal Interno de Relatório / PDF (não quebra nem sai do WebView) */}
-      <ReportModal
-        isOpen={showReportModal}
-        onClose={() => setShowReportModal(false)}
-        data={{
-          periodLabel,
-          totalEntries,
-          totalExits,
-          balance,
-          categories: categoryData,
-          isMonthly,
-        }}
-      />
+      {/* Modal Interno de Relatório / PDF (renderizado apenas quando aberto) */}
+      {showReportModal && (
+        <ReportModal
+          isOpen={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          data={{
+            periodLabel,
+            totalEntries,
+            totalExits,
+            balance,
+            categories: categoryData || [],
+            isMonthly,
+          }}
+        />
+      )}
     </div>
   );
 };

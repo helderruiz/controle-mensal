@@ -17,10 +17,20 @@ interface ReportModalProps {
 }
 
 const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data }) => {
-  if (!isOpen) return null;
+  if (!isOpen || !data) return null;
+
+  const categories = data.categories || [];
+  const totalEntries = data.totalEntries || 0;
+  const totalExits = data.totalExits || 0;
+  const balance = data.balance || 0;
+  const periodLabel = data.periodLabel || 'Período';
 
   const handlePrint = () => {
-    window.print();
+    try {
+      window.print();
+    } catch (e) {
+      console.warn('Erro ao disparar impressão:', e);
+    }
   };
 
   return (
@@ -56,7 +66,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data }) => {
                 Controle Mensal
               </h1>
               <p className="text-xs font-bold text-slate-500 mt-0.5">
-                Relatório Financeiro • {data.periodLabel}
+                Relatório Financeiro • {periodLabel}
               </p>
             </div>
             <div className="text-right">
@@ -73,7 +83,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data }) => {
                 Entradas
               </span>
               <span className="text-sm font-black text-emerald-600">
-                R$ {formatBRL(data.totalEntries)}
+                R$ {formatBRL(totalEntries)}
               </span>
             </div>
 
@@ -82,7 +92,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data }) => {
                 Saídas
               </span>
               <span className="text-sm font-black text-rose-600">
-                R$ {formatBRL(data.totalExits)}
+                R$ {formatBRL(totalExits)}
               </span>
             </div>
 
@@ -90,8 +100,8 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data }) => {
               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
                 Saldo
               </span>
-              <span className={`text-sm font-black ${data.balance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                R$ {formatBRL(data.balance)}
+              <span className={`text-sm font-black ${balance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                R$ {formatBRL(balance)}
               </span>
             </div>
           </div>
@@ -110,14 +120,14 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs font-medium">
-                {data.categories.length === 0 ? (
+                {categories.length === 0 ? (
                   <tr>
                     <td colSpan={3} className="py-4 text-center text-slate-400">
                       Nenhum gasto registrado neste período.
                     </td>
                   </tr>
                 ) : (
-                  data.categories.map((c, i) => (
+                  categories.map((c, i) => (
                     <tr key={i} className="hover:bg-slate-50/50">
                       <td className="py-2.5 px-3 font-semibold text-slate-700">{c.name}</td>
                       <td className="py-2.5 px-3 text-center text-slate-400">{c.count}</td>
