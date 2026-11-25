@@ -206,6 +206,7 @@ export async function checkUserMustBeBlocked(user: SupabaseUser | null | undefin
   const config = await getSubscriptionConfig();
 
   // Se a chave geral de bloqueio do dia 01 estiver desligada, permite o acesso dos não-bloqueados
+  // A data configurada é comparada com a meia-noite local do dispositivo.
   if (!config.blockActive || new Date() < new Date(`${config.blockStartDate}T00:00:00`)) {
     return false;
   }
