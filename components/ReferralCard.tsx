@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User } from '@supabase/supabase-js';
+import { openSafeWhatsApp } from '../utils/safeWhatsApp';
 
 interface ReferralCardProps {
   user: User;
@@ -7,6 +8,7 @@ interface ReferralCardProps {
 
 const ReferralCard: React.FC<ReferralCardProps> = ({ user }) => {
   const [copied, setCopied] = useState(false);
+  const [feedback, setFeedback] = useState('');
 
   // Código de indicação amigável baseado no ID único do usuário (primeiros 6 dígitos maiúsculos)
   const referralCode = user.id ? user.id.replace(/-/g, '').slice(0, 6).toUpperCase() : 'CMVIP';
@@ -15,15 +17,22 @@ const ReferralCard: React.FC<ReferralCardProps> = ({ user }) => {
   const referralUrl = `${window.location.origin}/#/signup?ref=${referralCode}`;
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(referralUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 3000);
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(referralUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    }
   };
 
   const handleShareWhatsApp = () => {
-    const text = `Oi! Estou usando o *Controle Mensal* para organizar minhas finanças e economizar. Crie sua conta com meu link de convite e teste grátis:\n${referralUrl}`;
-    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-    window.open(url, '_blank');
+    const text = `Oi! Estou usando o Controle Mensal para organizar minhas finanças e economizar. Crie sua conta com meu convite e teste grátis:\n${referralUrl}`;
+    openSafeWhatsApp({
+      text,
+      onFeedback: (msg) => {
+        setFeedback(msg);
+        setTimeout(() => setFeedback(''), 4000);
+      },
+    });
   };
 
   return (
@@ -79,6 +88,12 @@ const ReferralCard: React.FC<ReferralCardProps> = ({ user }) => {
         <span className="material-symbols-outlined text-base">share</span>
         <span>Compartilhar Convite no WhatsApp</span>
       </button>
+
+      {feedback && (
+        <p className="text-center text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-2 animate-fadeIn">
+          {feedback}
+        </p>
+      )}
     </div>
   );
 };

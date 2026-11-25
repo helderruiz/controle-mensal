@@ -1,0 +1,4 @@
+#|
+$JSON
+{"authURL":["creator.kodular.io","creator-new.kodular.io"],"YaVersion":"247","Source":"Form","Properties":{"$Name":"Screen1","$Type":"Form","$Version":"46","AppId":"643765371970501187","AppName":"Controle_Mensal","MinSdk":"28","ReceiveSharedText":"none","ShowStatusBar":"False","Title":"Screen1","TitleVisible":"False","Uuid":"0","$Components":[{"$Name":"NavegadorWeb1","$Type":"WebViewer","$Version":"13","Height":"-2","Width":"-2","HomeUrl":"controle-mensal.vercel.app","Uuid":"493448318","ZoomDisplay":"False","ZoomEnabled":"False"},{"$Name":"Activity_Starter1","$Type":"ActivityStarter","$Version":"6","Uuid":"-1887399551"}]}}
+|#

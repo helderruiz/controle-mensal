@@ -7,7 +7,8 @@ import {
 import { Transaction, TransactionType } from '../types';
 import { COLORS, CATEGORY_ICONS, CATEGORY_COLORS } from '../constants';
 import { formatBRL, filterByMonth, parseDateSafe, getCustomCategoryEmoji } from '../utils';
-import { printFinancialReport, shareReportWhatsApp } from '../utils/reportExport';
+import { openSafeWhatsApp } from '../utils/safeWhatsApp';
+import ReportModal, { ReportData } from '../components/ReportModal';
 
 interface ReportsProps {
   transactions: Transaction[];
@@ -28,6 +29,8 @@ const Reports: React.FC<ReportsProps> = ({ transactions }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('monthly');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [whatsappFeedback, setWhatsappFeedback] = useState('');
 
   const handlePrevMonth = () =>
     setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
@@ -136,8 +139,30 @@ const Reports: React.FC<ReportsProps> = ({ transactions }) => {
     ? `${MONTH_NAMES[currentDate.getMonth()]} de ${currentDate.getFullYear()}`
     : `Ano de ${currentDate.getFullYear()}`;
 
-  // Lista de saídas do período selecionado
-  const currentPeriodExits = isMonthly ? monthlyData.exits : annualData.exits;
+  const handleShareReportWhatsApp = () => {
+    const topCategories = categoryData
+      .slice(0, 4)
+      .map((c) => `• ${c.name}: R$ ${formatBRL(c.value)}`)
+      .join('\n');
+
+    const text = `📊 *Resumo Financeiro - Controle Mensal*
+🗓️ *Período:* ${periodLabel}
+
+🟢 *Entradas:* R$ ${formatBRL(totalEntries)}
+🔴 *Saídas:* R$ ${formatBRL(totalExits)}
+💰 *Saldo:* R$ ${formatBRL(balance)}
+
+${categoryData.length > 0 ? `*Maiores Despesas:*\n${topCategories}\n` : ''}
+_Gerado pelo app Controle Mensal_`;
+
+    openSafeWhatsApp({
+      text,
+      onFeedback: (msg) => {
+        setWhatsappFeedback(msg);
+        setTimeout(() => setWhatsappFeedback(''), 4000);
+      },
+    });
+  };
 
   // Transações da categoria selecionada para o modal de extrato
   const selectedCategoryTransactions = useMemo(() => {
@@ -218,42 +243,32 @@ const Reports: React.FC<ReportsProps> = ({ transactions }) => {
         </div>
 
         {/* Botões de Ação: Exportar PDF e WhatsApp */}
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() =>
-              printFinancialReport({
-                periodLabel,
-                totalEntries,
-                totalExits,
-                balance,
-                categories: categoryData,
-                isMonthly,
-              })
-            }
-            className="flex-1 py-2.5 px-3 rounded-2xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all"
-          >
-            <span className="material-symbols-outlined text-base text-rose-500">picture_as_pdf</span>
-            <span>Exportar PDF</span>
-          </button>
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowReportModal(true)}
+              className="flex-1 py-2.5 px-3 rounded-2xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all"
+            >
+              <span className="material-symbols-outlined text-base text-rose-500">picture_as_pdf</span>
+              <span>Exportar PDF</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() =>
-              shareReportWhatsApp({
-                periodLabel,
-                totalEntries,
-                totalExits,
-                balance,
-                categories: categoryData,
-                isMonthly,
-              })
-            }
-            className="flex-1 py-2.5 px-3 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold text-xs flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all"
-          >
-            <span className="material-symbols-outlined text-base text-emerald-500">share</span>
-            <span>WhatsApp</span>
-          </button>
+            <button
+              type="button"
+              onClick={handleShareReportWhatsApp}
+              className="flex-1 py-2.5 px-3 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold text-xs flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all"
+            >
+              <span className="material-symbols-outlined text-base text-emerald-500">share</span>
+              <span>WhatsApp</span>
+            </button>
+          </div>
+
+          {whatsappFeedback && (
+            <p className="text-center text-xs text-emerald-500 font-semibold animate-pulse">
+              {whatsappFeedback}
+            </p>
+          )}
         </div>
 
         {/* Gráfico de Pizza — distribuição por categoria */}
@@ -545,6 +560,20 @@ const Reports: React.FC<ReportsProps> = ({ transactions }) => {
           </div>
         </div>
       )}
+
+      {/* Modal Interno de Relatório / PDF (não quebra nem sai do WebView) */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        data={{
+          periodLabel,
+          totalEntries,
+          totalExits,
+          balance,
+          categories: categoryData,
+          isMonthly,
+        }}
+      />
     </div>
   );
 };
