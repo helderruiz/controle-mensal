@@ -154,9 +154,43 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data }) => {
 
       // Salva o arquivo diretamente (faz o download nativo no celular ou PC)
       const nomeArquivo = `Relatorio_Controle_Mensal_${periodLabel.replace(/\s+/g, '_')}.pdf`;
+
+      // 1. Gera o Blob do PDF
+      const pdfBlob = doc.output('blob');
+
+      // 2. Se o dispositivo suportar Web Share API com arquivos (Android moderno / WebView / iOS),
+      // abre o menu nativo do celular para salvar nos Arquivos, Drive, WhatsApp, etc!
+      const pdfFile = new File([pdfBlob], nomeArquivo, { type: 'application/pdf' });
+      if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+        navigator.share({
+          files: [pdfFile],
+          title: 'Relatório Financeiro',
+          text: `Relatório Financeiro Controle Mensal - ${periodLabel}`,
+        }).catch((err) => {
+          console.warn('Compartilhamento cancelado ou não suportado:', err);
+          // Fallback para download clássico
+          doc.save(nomeArquivo);
+        });
+        setDownloading(false);
+        return;
+      }
+
+      // 3. Método clássico via elemento <a> invisível (para PC e navegadores padrão)
+      const blobUrl = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = nomeArquivo;
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      }, 500);
+
+      // 4. Também aciona doc.save como garantia
       doc.save(nomeArquivo);
 
-      setTimeout(() => setDownloading(false), 1000);
+      setTimeout(() => setDownloading(false), 800);
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
       alert('Falha ao gerar o arquivo PDF. Tente novamente.');
