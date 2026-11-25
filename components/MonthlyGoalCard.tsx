@@ -66,9 +66,14 @@ const MonthlyGoalCard: React.FC<MonthlyGoalCardProps> = ({ currentDate, balance 
             <span className="material-symbols-outlined text-lg">flag</span>
           </div>
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Meta de Economia do Mês
-            </h3>
+            <div className="flex items-center gap-1.5">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Meta de Economia do Mês
+              </h3>
+              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-black bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm shadow-amber-500/30 uppercase tracking-wider animate-pulse">
+                Novidade
+              </span>
+            </div>
             {goal > 0 && !isEditing && (
               <p className="text-sm font-extrabold text-slate-800 dark:text-white">
                 R$ {formatBRL(goal)}

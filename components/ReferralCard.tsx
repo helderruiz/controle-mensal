@@ -43,11 +43,16 @@ const ReferralCard: React.FC<ReferralCardProps> = ({ user }) => {
           <span className="material-symbols-outlined text-2xl">card_giftcard</span>
         </div>
         <div>
-          <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest block">
-            Programa de Indicação
-          </span>
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest block">
+              Programa de Indicação
+            </span>
+            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-black bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-sm shadow-purple-500/30 uppercase tracking-wider animate-pulse">
+              Novidade
+            </span>
+          </div>
           <h3 className="text-base font-extrabold text-slate-800 dark:text-white">
-            Indique Amigos e Ganhe
+            Indique Amigos
           </h3>
         </div>
       </div>

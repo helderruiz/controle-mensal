@@ -251,19 +251,25 @@ _Gerado pelo app Controle Mensal_`;
             <button
               type="button"
               onClick={() => setShowReportModal(true)}
-              className="flex-1 py-2.5 px-3 rounded-2xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all"
+              className="flex-1 py-2.5 px-3 rounded-2xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all relative overflow-hidden"
             >
               <span className="material-symbols-outlined text-base text-rose-500">picture_as_pdf</span>
               <span>Exportar PDF</span>
+              <span className="inline-flex px-1.5 py-0.2 rounded-full text-[8px] font-black bg-rose-500 text-white uppercase tracking-wider">
+                Novo
+              </span>
             </button>
 
             <button
               type="button"
               onClick={handleShareReportWhatsApp}
-              className="flex-1 py-2.5 px-3 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold text-xs flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all"
+              className="flex-1 py-2.5 px-3 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all relative overflow-hidden"
             >
               <span className="material-symbols-outlined text-base text-emerald-500">share</span>
               <span>WhatsApp</span>
+              <span className="inline-flex px-1.5 py-0.2 rounded-full text-[8px] font-black bg-emerald-600 text-white uppercase tracking-wider">
+                Novo
+              </span>
             </button>
           </div>
 
