@@ -3,7 +3,8 @@ import { User as SupabaseUser } from '@supabase/supabase-js';
 import { isUserAdmin } from './adminService';
 
 export interface SubscriptionConfig {
-  blockActive: boolean; // Se o bloqueio do dia 01 está ligado
+  blockActive: boolean;
+  blockStartDate: string; // Data em que o bloqueio geral começa
   stripePaymentLink: string; // URL do Stripe Payment Link
   whatsappSupport: string; // Número de WhatsApp para suporte
   pixKey?: string; // Chave Pix para pagamento direto
@@ -11,7 +12,8 @@ export interface SubscriptionConfig {
 }
 
 const DEFAULT_CONFIG: SubscriptionConfig = {
-  blockActive: false, // Inicia DESATIVADO por padrão para segurança máxima dos 118 usuários
+  blockActive: true,
+  blockStartDate: '2026-12-01',
   stripePaymentLink: 'https://buy.stripe.com/6oUfZh0fccHVbCCgvt4Rq00',
   whatsappSupport: '5517936261493',
   pixKey: '8c9b8ea3-1550-4159-a2e7-59947cf6a5f4',
@@ -34,7 +36,8 @@ export async function getSubscriptionConfig(): Promise<SubscriptionConfig> {
     if (!error && data && data.value) {
       const val = data.value;
       return {
-        blockActive: Boolean(val.block_active),
+        blockActive: val.block_active !== false,
+        blockStartDate: val.block_start_date || DEFAULT_CONFIG.blockStartDate,
         stripePaymentLink: val.stripe_link || '',
         whatsappSupport: val.whatsapp || '5517936261493',
         pixKey: val.pix_key || '8c9b8ea3-1550-4159-a2e7-59947cf6a5f4',
@@ -67,6 +70,7 @@ export async function saveSubscriptionConfig(config: SubscriptionConfig): Promis
       key: 'subscription_config',
       value: {
         block_active: config.blockActive,
+        block_start_date: config.blockStartDate,
         stripe_link: config.stripePaymentLink,
         whatsapp: config.whatsappSupport,
         pix_key: config.pixKey,
@@ -202,7 +206,7 @@ export async function checkUserMustBeBlocked(user: SupabaseUser | null | undefin
   const config = await getSubscriptionConfig();
 
   // Se a chave geral de bloqueio do dia 01 estiver desligada, permite o acesso dos não-bloqueados
-  if (!config.blockActive) {
+  if (!config.blockActive || new Date() < new Date(`${config.blockStartDate}T00:00:00`)) {
     return false;
   }
 

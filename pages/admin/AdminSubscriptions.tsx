@@ -17,7 +17,8 @@ const AdminSubscriptions: React.FC = () => {
 
   // Configurações do Stripe e Bloqueio
   const [config, setConfig] = useState<SubscriptionConfig>({
-    blockActive: false,
+    blockActive: true,
+    blockStartDate: '2026-12-01',
     stripePaymentLink: 'https://buy.stripe.com/6oUfZh0fccHVbCCgvt4Rq00',
     whatsappSupport: '5511999999999',
     monthlyPrice: 4.99,
@@ -124,7 +125,7 @@ const AdminSubscriptions: React.FC = () => {
           {/* Toggle de Bloqueio Geral */}
           <div className="flex items-center gap-3 bg-[#070d1e] border border-[#172445] px-4 py-2 rounded-xl">
             <span className="text-xs font-semibold text-slate-300">
-              {config.blockActive ? 'Bloqueio ATIVADO' : 'Bloqueio DESATIVADO (Modo Seguro)'}
+              {config.blockActive ? 'Bloqueio programado' : 'Bloqueio desativado'}
             </span>
             <button
               type="button"
@@ -140,6 +141,21 @@ const AdminSubscriptions: React.FC = () => {
 
         {/* Form Fields */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+              InÃ­cio do bloqueio geral
+            </label>
+            <input
+              type="date"
+              value={config.blockStartDate}
+              onChange={e => setConfig(prev => ({ ...prev, blockStartDate: e.target.value }))}
+              className="w-full bg-[#070d1e] border border-[#172445] rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500 transition"
+            />
+            <p className="text-[11px] text-slate-500">
+              Contas antigas sem pagamento serÃ£o bloqueadas nesta data; contas novas mantÃªm 30 dias de teste.
+            </p>
+          </div>
+
           {/* Stripe Link */}
           <div className="space-y-1.5 md:col-span-2">
             <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">

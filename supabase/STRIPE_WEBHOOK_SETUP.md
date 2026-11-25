@@ -28,3 +28,9 @@ Selecione os eventos `checkout.session.completed` e `checkout.session.async_paym
 No Payment Link, configure a ação após o pagamento para redirecionar ao domínio publicado do app, com `?payment=success` (por exemplo, `https://SEU_DOMINIO/?payment=success`). O navegador apenas mostra o retorno; o webhook assinado é quem ativa a conta. O modal consulta o status periodicamente e fecha após o Supabase registrar a confirmação.
 
 O processamento valida assinatura Stripe, moeda BRL, valor de R$ 4,99 e e-mail do checkout contra um perfil existente. Eventos repetidos não estendem a assinatura novamente.
+
+## 4. Agendamento do bloqueio e teste de pagamento
+
+A migration `20261125000100_schedule_subscription_block.sql` agenda o bloqueio geral para 2026-12-01. Aplique-a no projeto Supabase (`supabase db push`) para gravar a data no `system_settings`. A partir dessa data, contas sem assinatura válida e fora dos 30 dias de teste ficam bloqueadas. O teste começa na criação da conta; cada pagamento confirmado pelo webhook libera por mais 30 dias.
+
+Para testar sem cobrar um cartão real, use um Payment Link e endpoint de webhook em modo de teste, com chaves `sk_test_` e o segredo `whsec_` desse endpoint. Depois do pagamento, confirme no Supabase que `profiles.plan_expires_at` recebeu uma data 30 dias à frente e `profiles.status` voltou para `Ativo`. Para produção, use o Payment Link live e o endpoint/secrets live correspondentes.
