@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatBRL } from '../utils';
 
@@ -22,16 +22,18 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data }) => {
   if (!isOpen || !data) return null;
 
   const [downloading, setDownloading] = useState(false);
+  const [feedbackMsg, setFeedbackMsg] = useState('');
   const categories = data.categories || [];
   const totalEntries = data.totalEntries || 0;
   const totalExits = data.totalExits || 0;
   const balance = data.balance || 0;
   const periodLabel = data.periodLabel || 'Período';
 
-  const handleDownloadPDF = () => {
-    try {
-      setDownloading(true);
+  const handleDownloadPDF = async () => {
+    setDownloading(true);
+    setFeedbackMsg('Preparando PDF...');
 
+    try {
       const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -48,7 +50,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data }) => {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(11);
       doc.setTextColor(100, 116, 139); // Slate 500
-      doc.text(`Relatório Financeiro • ${periodLabel}`, 14, 27);
+      doc.text(`Relatório Financeiro - ${periodLabel}`, 14, 27);
 
       const dataHoje = new Date().toLocaleDateString('pt-BR');
       doc.setFontSize(9);
@@ -146,55 +148,56 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data }) => {
       doc.setTextColor(148, 163, 184);
       doc.setFont('helvetica', 'normal');
       doc.text(
-        'Relatório gerado pelo aplicativo Controle Mensal • Gestão Financeira Pessoal',
+        'Relatório gerado pelo aplicativo Controle Mensal - Gestão Financeira Pessoal',
         105,
         pageHeight - 10,
         { align: 'center' }
       );
 
-      // Salva o arquivo diretamente (faz o download nativo no celular ou PC)
       const nomeArquivo = `Relatorio_Controle_Mensal_${periodLabel.replace(/\s+/g, '_')}.pdf`;
 
-      // 1. Gera o Blob do PDF
-      const pdfBlob = doc.output('blob');
-
-      // 2. Se o dispositivo suportar Web Share API com arquivos (Android moderno / WebView / iOS),
-      // abre o menu nativo do celular para salvar nos Arquivos, Drive, WhatsApp, etc!
-      const pdfFile = new File([pdfBlob], nomeArquivo, { type: 'application/pdf' });
-      if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-        navigator.share({
-          files: [pdfFile],
-          title: 'Relatório Financeiro',
-          text: `Relatório Financeiro Controle Mensal - ${periodLabel}`,
-        }).catch((err) => {
-          console.warn('Compartilhamento cancelado ou não suportado:', err);
-          // Fallback para download clássico
-          doc.save(nomeArquivo);
-        });
-        setDownloading(false);
-        return;
+      // 1. Tenta compartilhamento nativo de arquivo (Android moderno / WebView)
+      try {
+        const pdfBlob = doc.output('blob');
+        const pdfFile = new File([pdfBlob], nomeArquivo, { type: 'application/pdf' });
+        if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+          await navigator.share({
+            files: [pdfFile],
+            title: 'Relatório Financeiro',
+            text: `Relatório Controle Mensal - ${periodLabel}`,
+          });
+          setFeedbackMsg('Relatório compartilhado!');
+          setTimeout(() => setFeedbackMsg(''), 4000);
+          setDownloading(false);
+          return;
+        }
+      } catch (shareErr) {
+        console.warn('Share API não utilizada, usando fallback:', shareErr);
       }
 
-      // 3. Método clássico via elemento <a> invisível (para PC e navegadores padrão)
-      const blobUrl = URL.createObjectURL(pdfBlob);
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = nomeArquivo;
-      document.body.appendChild(link);
-      link.click();
-      setTimeout(() => {
-        document.body.removeChild(link);
-        URL.revokeObjectURL(blobUrl);
-      }, 500);
+      // 2. Download via Data URL direto (compatível com WebView do Android sem DownloadManager)
+      try {
+        const dataUri = doc.output('datauristring');
+        const downloadLink = document.createElement('a');
+        downloadLink.href = dataUri;
+        downloadLink.download = nomeArquivo;
+        downloadLink.target = '_blank';
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        setFeedbackMsg('Download iniciado com sucesso!');
+        setTimeout(() => setFeedbackMsg(''), 4000);
+      } catch {
+        // 3. Fallback clássico doc.save
+        doc.save(nomeArquivo);
+      }
 
-      // 4. Também aciona doc.save como garantia
-      doc.save(nomeArquivo);
-
-      setTimeout(() => setDownloading(false), 800);
+      setDownloading(false);
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
-      alert('Falha ao gerar o arquivo PDF. Tente novamente.');
+      alert('Não foi possível gerar o PDF. Verifique se o navegador permite downloads.');
       setDownloading(false);
+      setFeedbackMsg('');
     }
   };
 
@@ -220,9 +223,15 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data }) => {
           <span className="material-symbols-outlined text-base">
             {downloading ? 'downloading' : 'download'}
           </span>
-          <span>{downloading ? 'Gerando PDF...' : 'Salvar em PDF'}</span>
+          <span>{downloading ? 'Gerando...' : 'Salvar em PDF'}</span>
         </button>
       </div>
+
+      {feedbackMsg && (
+        <div className="sticky top-14 z-50 bg-emerald-600 text-white text-xs font-bold py-2 text-center shadow-md animate-fadeIn">
+          {feedbackMsg}
+        </div>
+      )}
 
       {/* Conteúdo do Relatório */}
       <div className="flex-1 p-4 sm:p-6 max-w-2xl w-full mx-auto">
