@@ -16,18 +16,11 @@ const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ isOpen, onClose }) => {
         <div className="absolute -bottom-16 -left-16 w-36 h-36 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
 
         {/* Cabeçalho */}
-        <div className="text-center relative z-10">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 shadow-lg shadow-blue-600/40 border border-white/20 mb-3">
-            <span className="material-symbols-outlined text-2xl text-white">sparkles</span>
-          </div>
-
-          <span className="inline-block px-3 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-500/20 border border-blue-500/40 text-blue-300 uppercase tracking-widest mb-1.5">
-            Atualização 4.2
-          </span>
-          <h2 className="text-xl font-extrabold text-white tracking-tight font-display">
+        <div className="text-center relative z-10 pt-2">
+          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight font-display">
             Novidades no Controle Mensal!
           </h2>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-400 mt-2">
             Preparamos novos recursos para te ajudar a economizar mais todo mês.
           </p>
         </div>
@@ -73,7 +66,7 @@ const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ isOpen, onClose }) => {
             </div>
             <div>
               <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
-                <span>Indique Amigos e Ganhe</span>
+                <span>Indique Amigos</span>
                 <span className="text-[9px] bg-purple-500/20 text-purple-300 px-1.5 py-0.2 rounded-full font-bold">Grátis</span>
               </h3>
               <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
